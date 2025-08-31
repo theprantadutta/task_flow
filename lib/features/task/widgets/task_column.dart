@@ -6,12 +6,14 @@ class TaskColumn extends StatelessWidget {
   final String title;
   final List<Task> tasks;
   final String status;
+  final Function(Task, String) onTaskStatusChanged;
 
   const TaskColumn({
     super.key,
     required this.title,
     required this.tasks,
     required this.status,
+    required this.onTaskStatusChanged,
   });
 
   @override
@@ -61,8 +63,8 @@ class TaskColumn extends StatelessWidget {
                 );
               },
               onAcceptWithDetails: (details) {
-                // Handle task drop
-                // This would typically update the task status in Firestore
+                // Handle task drop and update status
+                onTaskStatusChanged(details.data, status);
               },
             ),
           ),

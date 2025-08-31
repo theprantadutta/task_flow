@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:task_flow/features/profile/presentation/screens/profile_screen.dart';
 import 'package:task_flow/features/workspace/presentation/screens/workspace_list_screen.dart';
 import 'package:task_flow/features/project/presentation/screens/project_list_screen.dart';
-import 'package:task_flow/features/task/presentation/screens/kanban_board_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -32,9 +31,17 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const Text(
+              'Welcome to TaskFlow',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () {
-                // Navigate to workspaces
+                // Navigate to workspace list
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -47,28 +54,18 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                // Navigate to projects
+                // Navigate to projects list
+                // For demo purposes, we'll use a default workspace ID
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ProjectListScreen(),
+                    builder: (context) => const ProjectListScreen(
+                      workspaceId: 'demo_workspace_id',
+                    ),
                   ),
                 );
               },
               child: const Text('Projects'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                // Navigate to Kanban board
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const KanbanBoardScreen(),
-                  ),
-                );
-              },
-              child: const Text('Kanban Board'),
             ),
           ],
         ),

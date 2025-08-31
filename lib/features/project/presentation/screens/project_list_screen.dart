@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_flow/features/auth/bloc/auth_bloc.dart';
 import 'package:task_flow/features/project/widgets/project_list.dart';
 import 'package:task_flow/features/project/widgets/create_project_form.dart';
+import 'package:task_flow/features/task/presentation/screens/kanban_board_screen.dart';
 import 'package:task_flow/shared/services/project_service.dart';
 import 'package:task_flow/shared/models/project.dart';
 

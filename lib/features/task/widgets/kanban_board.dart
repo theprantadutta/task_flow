@@ -4,8 +4,13 @@ import 'package:task_flow/features/task/widgets/task_column.dart';
 
 class KanbanBoard extends StatelessWidget {
   final List<Task> tasks;
+  final Function(Task, String) onTaskStatusChanged;
 
-  const KanbanBoard({super.key, required this.tasks});
+  const KanbanBoard({
+    super.key,
+    required this.tasks,
+    required this.onTaskStatusChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,16 +28,19 @@ class KanbanBoard extends StatelessWidget {
             title: 'To Do',
             tasks: todoTasks,
             status: 'todo',
+            onTaskStatusChanged: onTaskStatusChanged,
           ),
           TaskColumn(
             title: 'In Progress',
             tasks: inProgressTasks,
             status: 'in_progress',
+            onTaskStatusChanged: onTaskStatusChanged,
           ),
           TaskColumn(
             title: 'Done',
             tasks: doneTasks,
             status: 'done',
+            onTaskStatusChanged: onTaskStatusChanged,
           ),
         ],
       ),
