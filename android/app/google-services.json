@@ -1,26 +1,51 @@
 {
   "project_info": {
-    "project_number": "619110037705",
-    "project_id": "task-flow-29c2d",
-    "storage_bucket": "task-flow-29c2d.firebasestorage.app"
+    "project_number": "YOUR_PROJECT_NUMBER",
+    "project_id": "your-project-id",
+    "storage_bucket": "your-project-id.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:619110037705:android:ddb58f8d500b4dcdae3518",
+        "mobilesdk_app_id": "YOUR_MOBILE_SDK_APP_ID",
         "android_client_info": {
-          "package_name": "com.pranta.taskflow"
+          "package_name": "com.example.task_flow"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "YOUR_ANDROID_CLIENT_ID",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.task_flow",
+            "certificate_hash": "YOUR_CERTIFICATE_HASH"
+          }
+        },
+        {
+          "client_id": "YOUR_WEB_CLIENT_ID",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyCVaCqC4MnbKhdDK6nxsI0GmewJX6UHe70"
+          "current_key": "YOUR_ANDROID_API_KEY"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "YOUR_WEB_CLIENT_ID",
+              "client_type": 3
+            },
+            {
+              "client_id": "YOUR_IOS_CLIENT_ID",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.taskFlow"
+              }
+            }
+          ]
         }
       }
     }
