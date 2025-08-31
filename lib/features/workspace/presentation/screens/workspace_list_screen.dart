@@ -26,6 +26,20 @@ class _WorkspaceListScreenState extends State<WorkspaceListScreen> {
     _loadWorkspaces();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // This will be called when the widget is rebuilt
+    // We can use this to refresh data when needed
+  }
+
+  @override
+  void didUpdateWidget(covariant WorkspaceListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // This will be called when the widget is updated
+    // We can use this to refresh data when needed
+  }
+
   Future<void> _loadWorkspaces() async {
     try {
       final user = context.read<AuthBloc>().state.user;

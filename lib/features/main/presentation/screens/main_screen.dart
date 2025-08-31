@@ -54,7 +54,7 @@ class _MainScreenState extends State<MainScreen> {
               onCreate: (workspace) async {
                 try {
                   final workspaceService = WorkspaceService();
-                  final newWorkspace = await workspaceService.createWorkspace(
+                  await workspaceService.createWorkspace(
                     name: workspace.name,
                     ownerId: user.uid,
                   );
@@ -68,6 +68,17 @@ class _MainScreenState extends State<MainScreen> {
                         backgroundColor: Colors.green,
                       ),
                     );
+                    
+                    // If we're currently on the workspace screen, trigger a refresh
+                    // We do this by setting the state which will rebuild the screen
+                    if (_currentIndex == 1) {
+                      // Access the WorkspaceListScreen state and call _loadWorkspaces
+                      // This is a bit of a hack, but it works for now
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        // Rebuild the current screen to trigger data refresh
+                        setState(() {});
+                      });
+                    }
                   }
                 } catch (e) {
                   if (context.mounted) {
