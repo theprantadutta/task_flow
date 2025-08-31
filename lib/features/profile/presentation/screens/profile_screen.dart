@@ -94,6 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: const Text('Settings'),
                     onTap: () {
                       // Navigate to settings
+                      _showSettingsDialog(context);
                     },
                   ),
                   Consumer<ThemeProvider>(
@@ -108,9 +109,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
+                  const Divider(),
                   ListTile(
-                    leading: const Icon(Icons.logout),
-                    title: const Text('Logout'),
+                    leading: const Icon(Icons.notifications),
+                    title: const Text('Notifications'),
+                    onTap: () {
+                      // Handle notifications settings
+                      _showNotificationsDialog(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.security),
+                    title: const Text('Privacy'),
+                    onTap: () {
+                      // Handle privacy settings
+                      _showPrivacyDialog(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.help_outline),
+                    title: const Text('Help & Support'),
+                    onTap: () {
+                      // Handle help and support
+                      _showHelpDialog(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: const Text('About'),
+                    onTap: () {
+                      // Handle about
+                      _showAboutDialog(context);
+                    },
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.logout, color: Colors.red),
+                    title: const Text('Logout', style: TextStyle(color: Colors.red)),
                     onTap: () {
                       // Logout
                       context.read<AuthBloc>().add(const AuthLoggedOut());
@@ -124,6 +159,116 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return const Center(child: Text('User not found'));
         },
       ),
+    );
+  }
+
+  void _showSettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Settings'),
+          content: const Text('Settings options would be implemented here.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showNotificationsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Notifications'),
+          content: const Text('Notification settings would be implemented here.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPrivacyDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Privacy'),
+          content: const Text('Privacy settings would be implemented here.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Help & Support'),
+          content: const Text('Help and support options would be implemented here.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAboutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('About TaskFlow'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('TaskFlow v1.0.0'),
+              SizedBox(height: 16),
+              Text('A productivity app to help you manage your tasks and projects efficiently.'),
+              SizedBox(height: 16),
+              Text('© 2025 TaskFlow. All rights reserved.'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

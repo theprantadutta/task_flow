@@ -28,7 +28,13 @@ class TasksScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Implement create task
+          // Show message that task creation is done in project context
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tasks are created within projects'),
+              backgroundColor: Colors.blue,
+            ),
+          );
         },
         child: const Icon(Icons.add),
       ),

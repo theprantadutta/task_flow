@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_flow/features/auth/bloc/auth_bloc.dart';
 import 'package:task_flow/features/workspace/widgets/workspace_grid.dart';
 import 'package:task_flow/features/workspace/widgets/create_workspace_form.dart';
+import 'package:task_flow/features/workspace/presentation/screens/workspace_detail_screen.dart';
 import 'package:task_flow/shared/services/workspace_service.dart';
 import 'package:task_flow/shared/models/workspace.dart';
 
@@ -142,6 +143,12 @@ class _WorkspaceListScreenState extends State<WorkspaceListScreen> {
               workspaces: _workspaces,
               onWorkspaceTap: (workspace) {
                 // Navigate to workspace detail screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => WorkspaceDetailScreen(workspace: workspace),
+                  ),
+                );
               },
               onCreateWorkspace: _showCreateWorkspaceDialog,
             ),
