@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "619110037705",
+    "project_id": "task-flow-29c2d",
+    "storage_bucket": "task-flow-29c2d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:619110037705:android:ddb58f8d500b4dcdae3518",
+        "android_client_info": {
+          "package_name": "com.pranta.taskflow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVaCqC4MnbKhdDK6nxsI0GmewJX6UHe70"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
