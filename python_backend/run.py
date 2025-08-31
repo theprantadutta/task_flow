@@ -39,7 +39,7 @@ def run_server():
     try:
         # Set environment variables
         os.environ['FLASK_APP'] = 'app.py'
-        os.environ['FLASK_ENV'] = 'development'
+        os.environ['FLASK_ENV'] = os.getenv('FLASK_ENV', 'development')
         
         # Run the Flask app
         subprocess.run([sys.executable, "-m", "flask", "run", "--host=0.0.0.0", "--port=5000"], 

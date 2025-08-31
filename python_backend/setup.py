@@ -45,6 +45,13 @@ def main():
     if not install_dependencies():
         return False
     
+    # Create .gitkeep file in venv directory if it doesn't exist
+    venv_gitkeep = os.path.join("venv", ".gitkeep")
+    if not os.path.exists(venv_gitkeep):
+        with open(venv_gitkeep, 'w') as f:
+            pass  # Create empty file
+        print("Created .gitkeep in venv directory")
+    
     print("\nSetup completed successfully!")
     print("\nTo activate the virtual environment:")
     if os.name == 'nt':  # Windows
@@ -52,8 +59,15 @@ def main():
     else:  # macOS/Linux
         print("  source venv/bin/activate")
     
-    print("\nTo run the server:")
-    print("  python app.py")
+    print("\nNext steps:")
+    print("1. Set up Firebase Admin SDK credentials:")
+    print("   - Download the service account key JSON file from Firebase Console")
+    print("   - Rename it to serviceAccountKey.json and place it in this directory")
+    print("   - Or set the FIREBASE_* environment variables in a .env file")
+    print("\n2. Copy .env.example to .env and update the values:")
+    print("   cp .env.example .env")
+    print("\n3. Run the server:")
+    print("   python app.py")
     
     return True
 
