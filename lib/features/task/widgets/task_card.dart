@@ -70,15 +70,66 @@ class TaskCard extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Assignee avatar
+                  if (task.assigneeId != null)
+                    const CircleAvatar(
+                      radius: 12,
+                      backgroundColor: Colors.deepPurple,
+                      child: Icon(
+                        Icons.person,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                    ),
+                  // Attachment and comment indicators
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.attachment,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.comment,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        '0', // TODO: Replace with actual comment count
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
       childWhenDragging: Opacity(
         opacity: 0.5,
+        child: InkWell(
+          onTap: () {
+            // TODO: Navigate to task detail screen
+          },
+          child: _buildCard(context),
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          // TODO: Navigate to task detail screen
+        },
         child: _buildCard(context),
       ),
-      child: _buildCard(context),
     );
   }
 
@@ -145,6 +196,47 @@ class TaskCard extends StatelessWidget {
                     color: Colors.white,
                   ),
                 ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Assignee avatar
+              if (task.assigneeId != null)
+                const CircleAvatar(
+                  radius: 12,
+                  backgroundColor: Colors.deepPurple,
+                  child: Icon(
+                    Icons.person,
+                    size: 12,
+                    color: Colors.white,
+                  ),
+                ),
+              // Attachment and comment indicators
+              Row(
+                children: [
+                  const Icon(
+                    Icons.attachment,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.comment,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    '0', // TODO: Replace with actual comment count
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

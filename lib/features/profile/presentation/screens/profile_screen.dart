@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:task_flow/features/auth/bloc/auth_bloc.dart';
 import 'package:task_flow/features/profile/widgets/profile_header.dart';
 import 'package:task_flow/features/profile/widgets/profile_form.dart';
 import 'package:task_flow/shared/services/user_service.dart';
+import 'package:task_flow/core/themes/theme_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -92,6 +94,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: const Text('Settings'),
                     onTap: () {
                       // Navigate to settings
+                    },
+                  ),
+                  Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, child) {
+                      return SwitchListTile(
+                        secondary: const Icon(Icons.dark_mode),
+                        title: const Text('Dark Mode'),
+                        value: themeProvider.isDarkMode,
+                        onChanged: (value) {
+                          themeProvider.toggleTheme();
+                        },
+                      );
                     },
                   ),
                   ListTile(
