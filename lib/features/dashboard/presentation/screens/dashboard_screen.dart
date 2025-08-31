@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_flow/features/auth/bloc/auth_bloc.dart';
 import 'package:task_flow/features/dashboard/services/dashboard_service.dart';
-import 'package:task_flow/features/workspace/widgets/create_workspace_form.dart';
 import 'package:task_flow/features/project/widgets/create_project_form.dart';
+import 'package:task_flow/features/workspace/widgets/create_workspace_form.dart';
 import 'package:task_flow/shared/models/workspace.dart';
-import 'package:task_flow/shared/services/workspace_service.dart';
 import 'package:task_flow/shared/services/project_service.dart';
+import 'package:task_flow/shared/services/workspace_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -34,7 +34,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (user != null) {
         final stats = await _dashboardService.getUserStats(user.uid);
         final workspaces = await _dashboardService.getUserWorkspaces(user.uid);
-        
+
         if (mounted) {
           setState(() {
             _userStats = stats;
@@ -77,22 +77,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // Welcome Section
                     const DashboardHeader(),
                     const SizedBox(height: 24),
-                    
+
                     // Quick Stats
                     QuickStatsSection(
                       tasksCompleted: _userStats['tasksCompletedThisWeek'] ?? 0,
                       upcomingDeadlines: _userStats['upcomingDeadlines'] ?? 0,
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Quick Actions
                     const QuickActionsSection(),
                     const SizedBox(height: 24),
-                    
+
                     // Workspace Overview
                     WorkspaceOverviewSection(workspaces: _workspaces),
                     const SizedBox(height: 24),
-                    
+
                     // Task Summary
                     const TaskSummarySection(),
                   ],
@@ -116,25 +116,19 @@ class DashboardHeader extends StatelessWidget {
           children: [
             const Text(
               'Good morning,',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.normal,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
             ),
             const SizedBox(height: 4),
             Text(
               userName,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
               'Here\'s what\'s happening with your tasks today',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ],
         );
@@ -200,11 +194,14 @@ class QuickStatsSection extends StatelessWidget {
               children: [
                 Icon(icon, color: color),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    softWrap: true,
                   ),
                 ),
               ],
@@ -212,18 +209,12 @@ class QuickStatsSection extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
@@ -242,10 +233,7 @@ class QuickActionsSection extends StatelessWidget {
       children: [
         const Text(
           'Quick Actions',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         Row(
@@ -273,13 +261,15 @@ class QuickActionsSection extends StatelessWidget {
                                   name: workspace.name,
                                   ownerId: user.uid,
                                 );
-                                
+
                                 if (context.mounted) {
                                   Navigator.pop(context); // Close the dialog
-                                  
+
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Workspace created successfully'),
+                                      content: Text(
+                                        'Workspace created successfully',
+                                      ),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
@@ -288,7 +278,9 @@ class QuickActionsSection extends StatelessWidget {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Failed to create workspace: $e'),
+                                      content: Text(
+                                        'Failed to create workspace: $e',
+                                      ),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -315,8 +307,9 @@ class QuickActionsSection extends StatelessWidget {
                   if (user != null) {
                     try {
                       final workspaceService = WorkspaceService();
-                      final workspaces = await workspaceService.getUserWorkspaces(user.uid);
-                      
+                      final workspaces = await workspaceService
+                          .getUserWorkspaces(user.uid);
+
                       if (workspaces.isEmpty) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -328,7 +321,7 @@ class QuickActionsSection extends StatelessWidget {
                         }
                         return;
                       }
-                      
+
                       if (context.mounted) {
                         _showCreateProjectDialog(context, user.uid, workspaces);
                       }
@@ -369,9 +362,15 @@ class QuickActionsSection extends StatelessWidget {
     );
   }
 
-  void _showCreateProjectDialog(BuildContext context, String ownerId, List<Workspace> workspaces) {
-    String? selectedWorkspaceId = workspaces.isNotEmpty ? workspaces.first.id : null;
-    
+  void _showCreateProjectDialog(
+    BuildContext context,
+    String ownerId,
+    List<Workspace> workspaces,
+  ) {
+    String? selectedWorkspaceId = workspaces.isNotEmpty
+        ? workspaces.first.id
+        : null;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -383,7 +382,7 @@ class QuickActionsSection extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: selectedWorkspaceId,
+                    initialValue: selectedWorkspaceId,
                     items: workspaces.map((workspace) {
                       return DropdownMenuItem(
                         value: workspace.id,
@@ -395,9 +394,7 @@ class QuickActionsSection extends StatelessWidget {
                         selectedWorkspaceId = value;
                       });
                     },
-                    decoration: const InputDecoration(
-                      labelText: 'Workspace',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Workspace'),
                   ),
                   const SizedBox(height: 16),
                   CreateProjectForm(
@@ -405,7 +402,7 @@ class QuickActionsSection extends StatelessWidget {
                     ownerId: ownerId,
                     onCreate: (project) async {
                       if (selectedWorkspaceId == null) return;
-                      
+
                       try {
                         final projectService = ProjectService();
                         await projectService.createProject(
@@ -414,10 +411,10 @@ class QuickActionsSection extends StatelessWidget {
                           description: project.description,
                           ownerId: ownerId,
                         );
-                        
+
                         if (context.mounted) {
                           Navigator.pop(context); // Close the dialog
-                          
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Project created successfully'),
@@ -452,25 +449,21 @@ class QuickActionsSection extends StatelessWidget {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    return Expanded(
-      child: Card(
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Icon(icon, size: 32),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Icon(icon, size: 32),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
           ),
         ),
       ),
@@ -490,18 +483,13 @@ class WorkspaceOverviewSection extends StatelessWidget {
       children: [
         const Text(
           'Your Workspaces',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         if (workspaces.isEmpty)
           const SizedBox(
             height: 150,
-            child: Center(
-              child: Text('No workspaces yet'),
-            ),
+            child: Center(child: Text('No workspaces yet')),
           )
         else
           SizedBox(
@@ -534,10 +522,7 @@ class WorkspaceOverviewSection extends StatelessWidget {
                         const SizedBox(height: 8),
                         const Text(
                           '0 projects',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -561,18 +546,13 @@ class TaskSummarySection extends StatelessWidget {
       children: [
         const Text(
           'Task Summary',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         // TODO: Replace with actual task summary data
         const SizedBox(
           height: 150,
-          child: Center(
-            child: Text('Task summary will appear here'),
-          ),
+          child: Center(child: Text('Task summary will appear here')),
         ),
       ],
     );
