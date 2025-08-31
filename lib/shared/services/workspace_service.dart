@@ -36,6 +36,10 @@ class WorkspaceService extends BaseService {
       );
 
       Logger.info('Workspace created: ${docRef.id}');
+      
+      // Log the workspace creation event
+      await analyticsService.logWorkspaceCreated();
+      
       return newWorkspace;
     } catch (e) {
       Logger.error('Error creating workspace: $e');
@@ -45,10 +49,16 @@ class WorkspaceService extends BaseService {
 
   Future<List<Workspace>> getUserWorkspaces(String userId) async {
     try {
+      // Start a performance trace
+      final trace = await analyticsService.startTrace('get_user_workspaces');
+      
       final snapshot = await firestore
           .collection(AppConstants.workspacesCollection)
           .where('ownerId', isEqualTo: userId)
           .get();
+          
+      // Stop the trace
+      await trace.stop();
 
       return snapshot.docs
           .map((doc) => Workspace.fromJson({

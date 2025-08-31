@@ -36,6 +36,10 @@ class ProjectService extends BaseService {
       );
 
       Logger.info('Project created: ${docRef.id}');
+      
+      // Log the project creation event
+      await analyticsService.logProjectCreated();
+      
       return newProject;
     } catch (e) {
       Logger.error('Error creating project: $e');
@@ -45,11 +49,17 @@ class ProjectService extends BaseService {
 
   Future<List<Project>> getWorkspaceProjects(String workspaceId) async {
     try {
+      // Start a performance trace
+      final trace = await analyticsService.startTrace('get_workspace_projects');
+      
       final snapshot = await firestore
           .collection(AppConstants.workspacesCollection)
           .doc(workspaceId)
           .collection(AppConstants.projectsCollection)
           .get();
+          
+      // Stop the trace
+      await trace.stop();
 
       return snapshot.docs
           .map((doc) => Project.fromJson({

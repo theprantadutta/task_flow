@@ -58,6 +58,7 @@ analytics/macos/Runner/GoogleService-Info.plist
 # ignore .firebaserc for all examples
 **/.firebaserc
 firebase.json
+firebase/*
 
 # Ignoring environment variables
 *.env

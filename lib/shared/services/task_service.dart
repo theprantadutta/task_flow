@@ -54,6 +54,10 @@ class TaskService extends BaseService {
       );
 
       Logger.info('Task created: ${docRef.id}');
+      
+      // Log the task creation event
+      await analyticsService.logTaskCreated();
+      
       return newTask;
     } catch (e) {
       Logger.error('Error creating task: $e');
@@ -84,6 +88,9 @@ class TaskService extends BaseService {
 
   Future<List<Task>> getProjectTasks(String workspaceId, String projectId) async {
     try {
+      // Start a performance trace
+      final trace = await analyticsService.startTrace('get_project_tasks');
+      
       final snapshot = await firestore
           .collection(AppConstants.workspacesCollection)
           .doc(workspaceId)
@@ -91,6 +98,9 @@ class TaskService extends BaseService {
           .doc(projectId)
           .collection(AppConstants.tasksCollection)
           .get();
+          
+      // Stop the trace
+      await trace.stop();
 
       return snapshot.docs
           .map((doc) => Task.fromJson({

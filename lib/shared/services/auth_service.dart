@@ -42,6 +42,9 @@ class AuthService extends BaseService {
       
       Logger.info('User signed in: ${credential.user?.email}');
       
+      // Log the login event
+      await analyticsService.logLogin('email');
+      
       return local_user.User(
         uid: credential.user!.uid,
         email: credential.user!.email ?? '',
@@ -74,6 +77,11 @@ class AuthService extends BaseService {
       }
       
       Logger.info('User signed up: ${credential.user?.email}');
+      
+      // Log the sign up event
+      await analyticsService.logEvent('sign_up', {
+        'method': 'email',
+      });
       
       return local_user.User(
         uid: credential.user!.uid,
@@ -111,6 +119,9 @@ class AuthService extends BaseService {
       
       Logger.info('User signed in with Google: ${userCredential.user?.email}');
       
+      // Log the login event
+      await analyticsService.logLogin('google');
+      
       return local_user.User(
         uid: userCredential.user!.uid,
         email: userCredential.user!.email ?? '',
@@ -131,6 +142,9 @@ class AuthService extends BaseService {
       await _googleSignIn.signOut();
       await auth.signOut();
       Logger.info('User signed out');
+      
+      // Log the logout event
+      await analyticsService.logEvent('logout');
     } catch (e) {
       Logger.error('Sign out error: $e');
       rethrow;
@@ -141,6 +155,11 @@ class AuthService extends BaseService {
     try {
       await auth.sendPasswordResetEmail(email: email);
       Logger.info('Password reset email sent to $email');
+      
+      // Log the password reset event
+      await analyticsService.logEvent('password_reset_requested', {
+        'email': email,
+      });
     } on FirebaseAuthException catch (e) {
       Logger.error('Password reset error: ${e.message}');
       rethrow;

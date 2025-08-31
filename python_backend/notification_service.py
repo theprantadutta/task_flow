@@ -3,18 +3,29 @@ Notification Service for TaskFlow Python Backend
 """
 
 import firebase_admin
-from firebase_admin import messaging
+from firebase_admin import credentials, messaging
 from typing import List, Optional
+import os
+import json
 
 class NotificationService:
     def __init__(self):
         """Initialize the notification service"""
         if not firebase_admin._apps:
             try:
-                # Initialize with default credentials
-                # In production, you would use a service account key
-                firebase_admin.initialize_app()
-                self.initialized = True
+                # Try to initialize with service account key
+                service_account_path = os.path.join(os.path.dirname(__file__), 'serviceAccountKey.json')
+                
+                if os.path.exists(service_account_path):
+                    cred = credentials.Certificate(service_account_path)
+                    firebase_admin.initialize_app(cred)
+                    self.initialized = True
+                else:
+                    # Fallback to default credentials (for development)
+                    print("Service account key not found, using default credentials")
+                    firebase_admin.initialize_app()
+                    self.initialized = True
+                    
             except Exception as e:
                 print(f"Failed to initialize Firebase Admin SDK: {e}")
                 self.initialized = False
