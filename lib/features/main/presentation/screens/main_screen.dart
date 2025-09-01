@@ -11,6 +11,7 @@ import 'package:task_flow/features/workspace/widgets/create_workspace_form.dart'
 import 'package:task_flow/features/project/widgets/create_project_form.dart';
 import 'package:task_flow/shared/services/workspace_service.dart';
 import 'package:task_flow/shared/services/project_service.dart';
+import 'package:task_flow/shared/widgets/bottom_sheet_wrapper.dart';
 import 'package:task_flow/shared/widgets/enhanced_bottom_navigation_bar.dart';
 // Page transitions will be used in future implementations
 
@@ -38,16 +39,17 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  Future<void> _showCreateWorkspaceDialog() async {
+  Future<void> _showCreateWorkspaceBottomSheet() async {
     final user = context.read<AuthBloc>().state.user;
     if (user == null) return;
 
     if (context.mounted) {
-      showDialog(
+      showModalBottomSheet(
         context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Create Workspace'),
+        isScrollControlled: true,
+        builder: (BuildContext bottomSheetContext) {
+          return BottomSheetWrapper(
+            title: 'Create Workspace',
             content: CreateWorkspaceForm(
               ownerId: user.uid,
               onCreate: (workspace) async {
@@ -58,10 +60,10 @@ class _MainScreenState extends State<MainScreen> {
                     ownerId: user.uid,
                   );
 
-                  if (context.mounted) {
-                    Navigator.pop(context); // Close the dialog
+                  if (bottomSheetContext.mounted) {
+                    Navigator.pop(bottomSheetContext); // Close the bottom sheet
 
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
                       const SnackBar(
                         content: Text('Workspace created successfully'),
                         backgroundColor: Colors.green,
@@ -80,8 +82,8 @@ class _MainScreenState extends State<MainScreen> {
                     }
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  if (bottomSheetContext.mounted) {
+                    ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
                       SnackBar(
                         content: Text('Failed to create workspace: $e'),
                         backgroundColor: Colors.red,
@@ -91,13 +93,16 @@ class _MainScreenState extends State<MainScreen> {
                 }
               },
             ),
+            onCreate: () {
+              // The form will handle submission
+            },
           );
         },
       );
     }
   }
 
-  Future<void> _showCreateProjectDialog() async {
+  Future<void> _showCreateProjectBottomSheet() async {
     final user = context.read<AuthBloc>().state.user;
     if (user == null) return;
 
@@ -120,13 +125,14 @@ class _MainScreenState extends State<MainScreen> {
       String? selectedWorkspaceId = workspaces.isNotEmpty ? workspaces.first.id : null;
 
       if (context.mounted) {
-        showDialog(
+        showModalBottomSheet(
           context: context,
-          builder: (BuildContext dialogContext) {
+          isScrollControlled: true,
+          builder: (BuildContext bottomSheetContext) {
             return StatefulBuilder(
               builder: (context, setState) {
-                return AlertDialog(
-                  title: const Text('Create Project'),
+                return BottomSheetWrapper(
+                  title: 'Create Project',
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -163,10 +169,10 @@ class _MainScreenState extends State<MainScreen> {
                               ownerId: user.uid,
                             );
 
-                            if (dialogContext.mounted) {
-                              Navigator.pop(dialogContext); // Close the dialog
+                            if (bottomSheetContext.mounted) {
+                              Navigator.pop(bottomSheetContext); // Close the bottom sheet
 
-                              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
                                 const SnackBar(
                                   content: Text('Project created successfully'),
                                   backgroundColor: Colors.green,
@@ -174,8 +180,8 @@ class _MainScreenState extends State<MainScreen> {
                               );
                             }
                           } catch (e) {
-                            if (dialogContext.mounted) {
-                              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            if (bottomSheetContext.mounted) {
+                              ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
                                 SnackBar(
                                   content: Text('Failed to create project: $e'),
                                   backgroundColor: Colors.red,
@@ -187,6 +193,9 @@ class _MainScreenState extends State<MainScreen> {
                       ),
                     ],
                   ),
+                  onCreate: () {
+                    // The form will handle submission
+                  },
                 );
               },
             );
@@ -221,12 +230,12 @@ class _MainScreenState extends State<MainScreen> {
     switch (_currentIndex) {
       case 1: // Workspaces
         return FloatingActionButton(
-          onPressed: _showCreateWorkspaceDialog,
+          onPressed: _showCreateWorkspaceBottomSheet,
           child: const Icon(Icons.add_business),
         ).animate().scale(duration: 300.ms);
       case 2: // Projects
         return FloatingActionButton(
-          onPressed: _showCreateProjectDialog,
+          onPressed: _showCreateProjectBottomSheet,
           child: const Icon(Icons.add_box),
         ).animate().scale(duration: 300.ms);
       case 3: // Tasks

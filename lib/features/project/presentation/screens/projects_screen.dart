@@ -7,6 +7,7 @@ import 'package:task_flow/features/project/widgets/project_grid.dart';
 import 'package:task_flow/shared/models/project.dart';
 import 'package:task_flow/shared/services/project_service.dart';
 import 'package:task_flow/shared/services/workspace_service.dart';
+import 'package:task_flow/shared/widgets/bottom_sheet_wrapper.dart';
 
 class ProjectsScreen extends StatefulWidget {
   final VoidCallback? onTaskCreated; // Add callback parameter
@@ -69,7 +70,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     }
   }
 
-  Future<void> _showCreateProjectDialog() async {
+  Future<void> _showCreateProjectBottomSheet() async {
     final user = context.read<AuthBloc>().state.user;
     if (user == null) return;
 
@@ -93,82 +94,81 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           : null;
 
       if (context.mounted) {
-        showDialog(
+        showModalBottomSheet(
           context: context,
-          builder: (BuildContext dialogContext) {
+          isScrollControlled: true,
+          builder: (BuildContext bottomSheetContext) {
             return StatefulBuilder(
               builder: (context, setState) {
-                return AlertDialog(
-                  title: const Text('Create Project'),
-                  content: SizedBox(
-                    width: double.maxFinite,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          DropdownButtonFormField<String>(
-                            initialValue: selectedWorkspaceId,
-                            items: workspaces.map((workspace) {
-                              return DropdownMenuItem(
-                                value: workspace.id,
-                                child: Text(workspace.name),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                selectedWorkspaceId = value;
-                              });
-                            },
-                            decoration: const InputDecoration(
-                              labelText: 'Workspace',
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          CreateProjectForm(
-                            workspaceId: selectedWorkspaceId ?? '',
-                            ownerId: user.uid,
-                            onCreate: (project) async {
-                              if (selectedWorkspaceId == null) return;
-
-                              try {
-                                final newProject = await _projectService
-                                    .createProject(
-                                      workspaceId: selectedWorkspaceId!,
-                                      name: project.name,
-                                      description: project.description,
-                                      ownerId: user.uid,
-                                    );
-
-                                if (mounted) {
-                                  setState(() {
-                                    _projects.add(newProject);
-                                  });
-
-                                  Navigator.pop(dialogContext); // Close the dialog
-
-                                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Project created successfully'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
-                              } catch (e) {
-                                if (dialogContext.mounted) {
-                                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to create project: $e'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                          ),
-                        ],
+                return BottomSheetWrapper(
+                  title: 'Create Project',
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedWorkspaceId,
+                        items: workspaces.map((workspace) {
+                          return DropdownMenuItem(
+                            value: workspace.id,
+                            child: Text(workspace.name),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedWorkspaceId = value;
+                          });
+                        },
+                        decoration: const InputDecoration(
+                          labelText: 'Workspace',
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      CreateProjectForm(
+                        workspaceId: selectedWorkspaceId ?? '',
+                        ownerId: user.uid,
+                        onCreate: (project) async {
+                          if (selectedWorkspaceId == null) return;
+
+                          try {
+                            final newProject = await _projectService
+                                .createProject(
+                                  workspaceId: selectedWorkspaceId!,
+                                  name: project.name,
+                                  description: project.description,
+                                  ownerId: user.uid,
+                                );
+
+                            if (mounted) {
+                              setState(() {
+                                _projects.add(newProject);
+                              });
+
+                              Navigator.pop(bottomSheetContext); // Close the bottom sheet
+
+                              ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Project created successfully'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (bottomSheetContext.mounted) {
+                              ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to create project: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ],
                   ),
+                  onCreate: () {
+                    // The form will handle submission
+                  },
                 );
               },
             );
@@ -361,12 +361,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               },
               onProjectEdit: _showEditProjectDialog,
               onProjectDelete: _showDeleteConfirmationDialog,
-              onCreateProject: _showCreateProjectDialog,
+              onCreateProject: _showCreateProjectBottomSheet,
             ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Create Project',
         heroTag: 'createProject',
-        onPressed: _showCreateProjectDialog,
+        onPressed: _showCreateProjectBottomSheet,
         child: const Icon(Icons.add),
       ),
     );

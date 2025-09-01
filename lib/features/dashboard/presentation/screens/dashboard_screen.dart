@@ -7,6 +7,7 @@ import 'package:task_flow/features/workspace/widgets/create_workspace_form.dart'
 import 'package:task_flow/shared/models/workspace.dart';
 import 'package:task_flow/shared/services/project_service.dart';
 import 'package:task_flow/shared/services/workspace_service.dart';
+import 'package:task_flow/shared/widgets/bottom_sheet_wrapper.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -241,57 +242,57 @@ class QuickActionsSection extends StatelessWidget {
             Expanded(
               child: _buildActionButton(
                 context,
-                title: 'Create Workspace',
+                title: 'Add Workspace',
                 icon: Icons.add_business,
-                onTap: () {
-                  // Show create workspace dialog
+                onTap: () async {
                   final user = context.read<AuthBloc>().state.user;
-                  if (user != null) {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: const Text('Create Workspace'),
-                          content: CreateWorkspaceForm(
-                            ownerId: user.uid,
-                            onCreate: (workspace) async {
-                              try {
-                                final workspaceService = WorkspaceService();
-                                await workspaceService.createWorkspace(
-                                  name: workspace.name,
-                                  ownerId: user.uid,
+                  if (user == null) return;
+
+                  // Show create workspace form
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (BuildContext bottomSheetContext) {
+                      return BottomSheetWrapper(
+                        title: 'Create Workspace',
+                        content: CreateWorkspaceForm(
+                          ownerId: user.uid,
+                          onCreate: (workspace) async {
+                            try {
+                              final workspaceService = WorkspaceService();
+                              await workspaceService.createWorkspace(
+                                name: workspace.name,
+                                ownerId: user.uid,
+                              );
+
+                              if (bottomSheetContext.mounted) {
+                                Navigator.pop(bottomSheetContext); // Close the bottom sheet
+
+                                ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Workspace created successfully'),
+                                    backgroundColor: Colors.green,
+                                  ),
                                 );
-
-                                if (context.mounted) {
-                                  Navigator.pop(context); // Close the dialog
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Workspace created successfully',
-                                      ),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Failed to create workspace: $e',
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
                               }
-                            },
-                          ),
-                        );
-                      },
-                    );
-                  }
+                            } catch (e) {
+                              if (bottomSheetContext.mounted) {
+                                ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to create workspace: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                        onCreate: () {
+                          // The form will handle submission
+                        },
+                      );
+                    },
+                  );
                 },
               ),
             ),
@@ -299,41 +300,114 @@ class QuickActionsSection extends StatelessWidget {
             Expanded(
               child: _buildActionButton(
                 context,
-                title: 'Create Project',
+                title: 'Add Project',
                 icon: Icons.add_box,
                 onTap: () async {
-                  // Show workspace selection dialog first, then create project
                   final user = context.read<AuthBloc>().state.user;
-                  if (user != null) {
-                    try {
-                      final workspaceService = WorkspaceService();
-                      final workspaces = await workspaceService
-                          .getUserWorkspaces(user.uid);
+                  if (user == null) return;
 
-                      if (workspaces.isEmpty) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please create a workspace first'),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
-                        }
-                        return;
-                      }
+                  try {
+                    final workspaceService = WorkspaceService();
+                    final workspaces = await workspaceService.getUserWorkspaces(user.uid);
 
-                      if (context.mounted) {
-                        _showCreateProjectDialog(context, user.uid, workspaces);
-                      }
-                    } catch (e) {
+                    if (workspaces.isEmpty) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to load workspaces: $e'),
-                            backgroundColor: Colors.red,
+                          const SnackBar(
+                            content: Text('Please create a workspace first'),
+                            backgroundColor: Colors.orange,
                           ),
                         );
                       }
+                      return;
+                    }
+
+                    if (context.mounted) {
+                      String? selectedWorkspaceId = workspaces.isNotEmpty ? workspaces.first.id : null;
+
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext bottomSheetContext) {
+                          return StatefulBuilder(
+                            builder: (context, setState) {
+                              return BottomSheetWrapper(
+                                title: 'Create Project',
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    DropdownButtonFormField<String>(
+                                      initialValue: selectedWorkspaceId,
+                                      items: workspaces.map((workspace) {
+                                        return DropdownMenuItem(
+                                          value: workspace.id,
+                                          child: Text(workspace.name),
+                                        );
+                                      }).toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          selectedWorkspaceId = value;
+                                        });
+                                      },
+                                      decoration: const InputDecoration(labelText: 'Workspace'),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    CreateProjectForm(
+                                      workspaceId: selectedWorkspaceId ?? '',
+                                      ownerId: user.uid,
+                                      onCreate: (project) async {
+                                        if (selectedWorkspaceId == null) return;
+
+                                        try {
+                                          final projectService = ProjectService();
+                                          await projectService.createProject(
+                                            workspaceId: selectedWorkspaceId!,
+                                            name: project.name,
+                                            description: project.description,
+                                            ownerId: user.uid,
+                                          );
+
+                                          if (bottomSheetContext.mounted) {
+                                            Navigator.pop(bottomSheetContext); // Close the bottom sheet
+
+                                            ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Project created successfully'),
+                                                backgroundColor: Colors.green,
+                                              ),
+                                            );
+                                          }
+                                        } catch (e) {
+                                          if (bottomSheetContext.mounted) {
+                                            ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Failed to create project: $e'),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                onCreate: () {
+                                  // The form will handle submission
+                                },
+                              );
+                            },
+                          );
+                        },
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to load workspaces: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
                     }
                   }
                 },
@@ -359,87 +433,6 @@ class QuickActionsSection extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-
-  void _showCreateProjectDialog(
-    BuildContext context,
-    String ownerId,
-    List<Workspace> workspaces,
-  ) {
-    String? selectedWorkspaceId = workspaces.isNotEmpty
-        ? workspaces.first.id
-        : null;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Create Project'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedWorkspaceId,
-                    items: workspaces.map((workspace) {
-                      return DropdownMenuItem(
-                        value: workspace.id,
-                        child: Text(workspace.name),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedWorkspaceId = value;
-                      });
-                    },
-                    decoration: const InputDecoration(labelText: 'Workspace'),
-                  ),
-                  const SizedBox(height: 16),
-                  CreateProjectForm(
-                    workspaceId: selectedWorkspaceId ?? '',
-                    ownerId: ownerId,
-                    onCreate: (project) async {
-                      if (selectedWorkspaceId == null) return;
-
-                      try {
-                        final projectService = ProjectService();
-                        await projectService.createProject(
-                          workspaceId: selectedWorkspaceId!,
-                          name: project.name,
-                          description: project.description,
-                          ownerId: ownerId,
-                        );
-
-                        if (context.mounted) {
-                          Navigator.pop(context); // Close the dialog
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Project created successfully'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Failed to create project: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
     );
   }
 

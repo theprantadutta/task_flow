@@ -6,6 +6,7 @@ import 'package:task_flow/features/project/widgets/project_list.dart';
 import 'package:task_flow/features/task/presentation/screens/kanban_board_screen.dart';
 import 'package:task_flow/shared/models/project.dart';
 import 'package:task_flow/shared/services/project_service.dart';
+import 'package:task_flow/shared/widgets/bottom_sheet_wrapper.dart';
 
 class ProjectListScreen extends StatefulWidget {
   final String workspaceId;
@@ -148,19 +149,29 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     }
   }
 
-  void _showCreateProjectDialog() {
+  void _showCreateProjectBottomSheet() {
     final user = context.read<AuthBloc>().state.user;
     if (user == null) return;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
+      isScrollControlled: true,
+      builder: (BuildContext bottomSheetContext) {
+        return BottomSheetWrapper(
+          title: 'Create Project',
           content: CreateProjectForm(
             workspaceId: widget.workspaceId,
             ownerId: user.uid,
-            onCreate: _createProject,
+            onCreate: (project) async {
+              await _createProject(project);
+              if (bottomSheetContext.mounted) {
+                Navigator.pop(bottomSheetContext); // Close the bottom sheet
+              }
+            },
           ),
+          onCreate: () {
+            // The form will handle submission
+          },
         );
       },
     );
@@ -229,7 +240,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
         title: const Text('Projects'),
         actions: [
           IconButton(
-            onPressed: _showCreateProjectDialog,
+            onPressed: _showCreateProjectBottomSheet,
             icon: const Icon(Icons.add),
           ),
         ],
@@ -254,12 +265,12 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
               },
               onProjectEdit: _showEditProjectDialog,
               onProjectDelete: _showDeleteConfirmationDialog,
-              onCreateProject: _showCreateProjectDialog,
+              onCreateProject: _showCreateProjectBottomSheet,
             ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Create Project',
         heroTag: 'createProjectButton',
-        onPressed: _showCreateProjectDialog,
+        onPressed: _showCreateProjectBottomSheet,
         child: const Icon(Icons.add),
       ),
     );

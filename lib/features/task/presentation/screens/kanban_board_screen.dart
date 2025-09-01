@@ -5,6 +5,7 @@ import 'package:task_flow/features/task/widgets/create_task_form.dart';
 import 'package:task_flow/features/task/widgets/kanban_board.dart';
 import 'package:task_flow/shared/models/task.dart';
 import 'package:task_flow/shared/services/task_service.dart';
+import 'package:task_flow/shared/widgets/bottom_sheet_wrapper.dart';
 
 class KanbanBoardScreen extends StatefulWidget {
   final String workspaceId;
@@ -95,15 +96,16 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
     }
   }
 
-  void _showCreateTaskDialog() {
+  void _showCreateTaskBottomSheet() {
     final user = context.read<AuthBloc>().state.user;
     if (user == null) return;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Create Task'),
+      isScrollControlled: true,
+      builder: (BuildContext bottomSheetContext) {
+        return BottomSheetWrapper(
+          title: 'Create Task',
           content: SingleChildScrollView(
             child: CreateTaskForm(
               projectId: widget.projectId,
@@ -122,14 +124,14 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
                     priority: task.priority,
                   );
 
-                  if (dialogContext.mounted) {
+                  if (bottomSheetContext.mounted) {
                     setState(() {
                       _tasks.add(newTask);
                     });
 
-                    Navigator.pop(dialogContext); // Close the dialog
+                    Navigator.pop(bottomSheetContext); // Close the bottom sheet
 
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
                       const SnackBar(
                         content: Text('Task created successfully'),
                         backgroundColor: Colors.green,
@@ -145,8 +147,8 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
                     }
                   }
                 } catch (e) {
-                  if (dialogContext.mounted) {
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  if (bottomSheetContext.mounted) {
+                    ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
                       SnackBar(
                         content: Text('Failed to create task: $e'),
                         backgroundColor: Colors.red,
@@ -157,14 +159,9 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
               },
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Cancel'),
-            ),
-          ],
+          onCreate: () {
+            // The form will handle submission
+          },
         );
       },
     );
@@ -177,7 +174,7 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
         title: Text(widget.projectName),
         actions: [
           IconButton(
-            onPressed: _showCreateTaskDialog,
+            onPressed: _showCreateTaskBottomSheet,
             icon: const Icon(Icons.add),
           ),
         ],
@@ -200,7 +197,7 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
       floatingActionButton: FloatingActionButton(
         tooltip: 'Add new task',
         heroTag: 'addTask',
-        onPressed: _showCreateTaskDialog,
+        onPressed: _showCreateTaskBottomSheet,
         child: const Icon(Icons.add),
       ),
     );

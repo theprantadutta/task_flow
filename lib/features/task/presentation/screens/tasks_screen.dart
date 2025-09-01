@@ -15,6 +15,7 @@ import 'package:task_flow/shared/models/project.dart';
 import 'package:task_flow/shared/services/project_service.dart';
 import 'package:task_flow/shared/services/task_service.dart';
 import 'package:task_flow/shared/services/workspace_service.dart';
+import 'package:task_flow/shared/widgets/bottom_sheet_wrapper.dart';
 
 class TasksScreen extends StatefulWidget {
   final VoidCallback? onTaskCreated; // Add callback parameter
@@ -147,7 +148,7 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
     });
   }
 
-  Future<void> _showCreateTaskDialog() async {
+  Future<void> _showCreateTaskBottomSheet() async {
     final user = context.read<AuthBloc>().state.user;
     if (user == null) return;
 
@@ -205,11 +206,12 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
       if (selectedProject == null) return;
 
       if (context.mounted) {
-        showDialog(
+        showModalBottomSheet(
           context: context,
-          builder: (BuildContext dialogContext) {
-            return AlertDialog(
-              title: const Text('Create Task'),
+          isScrollControlled: true,
+          builder: (BuildContext bottomSheetContext) {
+            return BottomSheetWrapper(
+              title: 'Create Task',
               content: SingleChildScrollView(
                 child: CreateTaskForm(
                   projectId: selectedProject!.id,
@@ -229,15 +231,15 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
                         priority: task.priority,
                       );
 
-                      if (dialogContext.mounted) {
+                      if (bottomSheetContext.mounted) {
                         setState(() {
                           _allTasks.add(newTask);
                           _applyFilters();
                         });
 
-                        Navigator.pop(dialogContext); // Close the dialog
+                        Navigator.pop(bottomSheetContext); // Close the bottom sheet
 
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
                           const SnackBar(
                             content: Text('Task created successfully'),
                             backgroundColor: Colors.green,
@@ -253,8 +255,8 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
                         }
                       }
                     } catch (e) {
-                      if (dialogContext.mounted) {
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      if (bottomSheetContext.mounted) {
+                        ScaffoldMessenger.of(bottomSheetContext).showSnackBar(
                           SnackBar(
                             content: Text('Failed to create task: $e'),
                             backgroundColor: Colors.red,
@@ -265,14 +267,9 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
                   },
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                  },
-                  child: const Text('Cancel'),
-                ),
-              ],
+              onCreate: () {
+                // The form will handle submission
+              },
             );
           },
         );
@@ -352,6 +349,14 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
     _navigateToTaskDetail(task);
   }
 
+  void _onTaskDelete(Task task) {
+    // TODO: Implement task deletion
+  }
+
+  void _onTaskStatusChanged(Task task, String newStatus) {
+    // TODO: Implement task status change
+  }
+
   Future<void> _navigateToTaskDetail(Task task) async {
     try {
       final user = context.read<AuthBloc>().state.user;
@@ -401,100 +406,12 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error navigating to task: $e'),
+            content: Text('Failed to load workspace: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
-  }
-
-  Future<void> _deleteTask(Task task) async {
-    try {
-      // We need to find the workspace ID for this task
-      final user = context.read<AuthBloc>().state.user;
-      if (user == null) return;
-
-      // Get user's workspaces
-      final workspaces = await _workspaceService.getUserWorkspaces(user.uid);
-      
-      // Find the workspace that contains this task's project
-      String? workspaceId;
-      for (final workspace in workspaces) {
-        try {
-          final project = await _projectService.getProject(
-            workspace.id,
-            task.projectId,
-          );
-          if (project != null) {
-            workspaceId = workspace.id;
-            break;
-          }
-        } catch (e) {
-          // Continue to next workspace
-        }
-      }
-
-      if (workspaceId == null) {
-        throw Exception('Could not find workspace for task');
-      }
-
-      await _taskService.deleteTask(workspaceId, task.projectId, task.id);
-
-      if (mounted) {
-        setState(() {
-          _allTasks.removeWhere((t) => t.id == task.id);
-          _applyFilters();
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Task deleted successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // Refresh stats
-        _loadTasks();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to delete task: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _onTaskDelete(Task task) {
-    // Show confirmation dialog
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Delete Task'),
-          content: Text('Are you sure you want to delete "${task.title}"?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(dialogContext); // Close the dialog
-                await _deleteTask(task);
-              },
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -504,71 +421,55 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
         title: const Text('My Tasks'),
         actions: [
           IconButton(
-            onPressed: _loadTasks,
-            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              // TODO: Implement sort functionality
+            },
+            icon: const Icon(Icons.sort),
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: TaskFilterBar(
+            onFilterChanged: _onFilterChanged,
+          ),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadTasks,
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      // Task summary header
-                      TaskSummaryHeader(
-                        todayTasks: _taskStats['today'] ?? 0,
-                        overdueTasks: _taskStats['overdue'] ?? 0,
-                        upcomingTasks: _taskStats['upcoming'] ?? 0,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // View toggle
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          ViewToggle(
-                            isListView: _isListView,
-                            onViewChanged: _onViewChanged,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Task filter bar
-                      TaskFilterBar(onFilterChanged: _onFilterChanged),
-                      const SizedBox(height: 16),
-
-                      // Task list or Kanban board
-                      if (_isListView)
-                        TaskListView(
-                          tasks: _filteredTasks,
-                          onTaskTap: _onTaskTap,
-                          onTaskEdit: _onTaskEdit,
-                          onTaskDelete: _onTaskDelete,
-                        )
-                      else
-                        KanbanBoardView(
-                          tasks: _filteredTasks,
-                          onTaskTap: _onTaskTap,
-                          onTaskEdit: _onTaskEdit,
-                          onTaskDelete: _onTaskDelete,
-                          onTaskStatusChanged: (task, newStatus) {
-                            // TODO: Implement status change
-                          },
-                        ),
-                    ],
+              child: Column(
+                children: [
+                  TaskSummaryHeader(
+                    todayTasks: _taskStats['today'] ?? 0,
+                    overdueTasks: _taskStats['overdue'] ?? 0,
+                    upcomingTasks: _taskStats['upcoming'] ?? 0,
                   ),
-                ),
+                  ViewToggle(
+                    isListView: _isListView,
+                    onViewChanged: _onViewChanged,
+                  ),
+                  Expanded(
+                    child: _isListView
+                        ? TaskListView(
+                            tasks: _filteredTasks,
+                            onTaskTap: _onTaskTap,
+                            onTaskEdit: _onTaskEdit,
+                            onTaskDelete: _onTaskDelete,
+                          )
+                        : KanbanBoardView(
+                            tasks: _filteredTasks,
+                            onTaskTap: _onTaskTap,
+                            onTaskEdit: _onTaskEdit,
+                            onTaskDelete: _onTaskDelete,
+                            onTaskStatusChanged: _onTaskStatusChanged,
+                          ),
+                  ),
+                ],
               ),
             ),
       floatingActionButton: FloatingActionButton(
-        tooltip: 'Create Task',
-        heroTag: 'createTask',
-        onPressed: _showCreateTaskDialog,
+        onPressed: _showCreateTaskBottomSheet,
         child: const Icon(Icons.add),
       ),
     );

@@ -6,6 +6,7 @@ import 'package:task_flow/features/workspace/widgets/create_workspace_form.dart'
 import 'package:task_flow/features/workspace/widgets/workspace_grid.dart';
 import 'package:task_flow/shared/models/workspace.dart';
 import 'package:task_flow/shared/services/workspace_service.dart';
+import 'package:task_flow/shared/widgets/bottom_sheet_wrapper.dart';
 
 class WorkspaceListScreen extends StatefulWidget {
   const WorkspaceListScreen({super.key});
@@ -81,7 +82,7 @@ class _WorkspaceListScreenState extends State<WorkspaceListScreen> {
             _workspaces.add(newWorkspace);
           });
 
-          Navigator.pop(context); // Close the dialog
+          Navigator.pop(context); // Close the bottom sheet
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -103,18 +104,23 @@ class _WorkspaceListScreenState extends State<WorkspaceListScreen> {
     }
   }
 
-  void _showCreateWorkspaceDialog() {
+  void _showCreateWorkspaceBottomSheet() {
     final user = context.read<AuthBloc>().state.user;
     if (user == null) return;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (BuildContext context) {
-        return AlertDialog(
+        return BottomSheetWrapper(
+          title: 'Create Workspace',
           content: CreateWorkspaceForm(
             ownerId: user.uid,
             onCreate: _createWorkspace,
           ),
+          onCreate: () {
+            // The form will handle submission
+          },
         );
       },
     );
@@ -127,7 +133,7 @@ class _WorkspaceListScreenState extends State<WorkspaceListScreen> {
         title: const Text('Workspaces'),
         actions: [
           IconButton(
-            onPressed: _showCreateWorkspaceDialog,
+            onPressed: _showCreateWorkspaceBottomSheet,
             icon: const Icon(Icons.add),
           ),
         ],
@@ -165,12 +171,12 @@ class _WorkspaceListScreenState extends State<WorkspaceListScreen> {
                   ),
                 );
               },
-              onCreateWorkspace: _showCreateWorkspaceDialog,
+              onCreateWorkspace: _showCreateWorkspaceBottomSheet,
             ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Create Workspace',
         heroTag: 'createWorkspaceButton',
-        onPressed: _showCreateWorkspaceDialog,
+        onPressed: _showCreateWorkspaceBottomSheet,
         child: const Icon(Icons.add),
       ),
     );
