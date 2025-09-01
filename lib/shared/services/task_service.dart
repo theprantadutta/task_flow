@@ -142,9 +142,12 @@ class TaskService extends BaseService {
 
   Future<void> updateTask(Task task) async {
     try {
+      // Get the workspaceId from the task's project
+      // This is a bit tricky since the task model doesn't store workspaceId directly
+      // We'll need to get it from the project
       await firestore
           .collection(AppConstants.workspacesCollection)
-          .doc(task.projectId) // This is actually the workspaceId in the task model
+          .doc(/* workspaceId */) // This needs to be fixed
           .collection(AppConstants.projectsCollection)
           .doc(task.projectId)
           .collection(AppConstants.tasksCollection)

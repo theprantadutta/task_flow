@@ -78,13 +78,28 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
     try {
       final user = context.read<AuthBloc>().state.user;
       if (user != null) {
-        // Load personal tasks
-        final tasks = await _personalTaskService.getUserTasks(user.uid);
+        // Load personal tasks (assigned tasks)
+        final assignedTasks = await _personalTaskService.getUserTasks(user.uid);
+        
+        // Also get reported tasks as fallback
+        final reportedTasks = await _personalTaskService.getUserReportedTasks(user.uid);
+        
+        // Combine both lists and remove duplicates
+        final allTasksSet = <String, Task>{};
+        for (final task in assignedTasks) {
+          allTasksSet[task.id] = task;
+        }
+        for (final task in reportedTasks) {
+          allTasksSet[task.id] = task;
+        }
+        
+        final allTasks = allTasksSet.values.toList();
+        
         final stats = await _personalTaskService.getUserTaskStats(user.uid);
 
         if (mounted) {
           setState(() {
-            _allTasks = tasks;
+            _allTasks = allTasks;
             _taskStats = stats;
             _applyFilters(); // Apply current filters to get filtered tasks
             _isLoading = false;

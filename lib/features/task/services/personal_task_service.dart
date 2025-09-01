@@ -55,10 +55,75 @@ class PersonalTaskService extends BaseService {
     }
   }
 
+  /// Get all tasks reported by a specific user across all projects
+  /// This is a fallback method in case assigneeId is not set correctly
+  Future<List<Task>> getUserReportedTasks(String userId) async {
+    try {
+      final trace = await analyticsService.startTrace('get_user_reported_tasks');
+      
+      // Get all workspaces the user belongs to
+      final workspaceDocs = await firestore
+          .collection(AppConstants.workspacesCollection)
+          .where('members', arrayContains: userId)
+          .get();
+      
+      final allTasks = <Task>[];
+      
+      // For each workspace, get all projects
+      for (final workspaceDoc in workspaceDocs.docs) {
+        final projectDocs = await firestore
+            .collection(AppConstants.workspacesCollection)
+            .doc(workspaceDoc.id)
+            .collection(AppConstants.projectsCollection)
+            .get();
+        
+        // For each project, get all tasks reported by the user
+        for (final projectDoc in projectDocs.docs) {
+          final taskDocs = await firestore
+              .collection(AppConstants.workspacesCollection)
+              .doc(workspaceDoc.id)
+              .collection(AppConstants.projectsCollection)
+              .doc(projectDoc.id)
+              .collection(AppConstants.tasksCollection)
+              .where('reporterId', isEqualTo: userId)
+              .get();
+          
+          for (final taskDoc in taskDocs.docs) {
+            allTasks.add(Task.fromJson({
+              ...taskDoc.data(),
+              'id': taskDoc.id,
+            }));
+          }
+        }
+      }
+      
+      await trace.stop();
+      Logger.info('Retrieved ${allTasks.length} reported tasks for user $userId');
+      
+      return allTasks;
+    } catch (e) {
+      Logger.error('Error getting user reported tasks: $e');
+      rethrow;
+    }
+  }
+
   /// Get task statistics for the user
   Future<Map<String, int>> getUserTaskStats(String userId) async {
     try {
-      final tasks = await getUserTasks(userId);
+      // Get both assigned and reported tasks
+      final assignedTasks = await getUserTasks(userId);
+      final reportedTasks = await getUserReportedTasks(userId);
+      
+      // Combine both lists and remove duplicates
+      final allTasksSet = <String, Task>{};
+      for (final task in assignedTasks) {
+        allTasksSet[task.id] = task;
+      }
+      for (final task in reportedTasks) {
+        allTasksSet[task.id] = task;
+      }
+      
+      final allTasks = allTasksSet.values.toList();
       
       int todayTasks = 0;
       int overdueTasks = 0;
@@ -68,7 +133,7 @@ class PersonalTaskService extends BaseService {
       final today = DateTime(now.year, now.month, now.day);
       final tomorrow = today.add(const Duration(days: 1));
       
-      for (final task in tasks) {
+      for (final task in allTasks) {
         if (task.dueDate != null) {
           final dueDate = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
           
