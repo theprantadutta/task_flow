@@ -67,4 +67,68 @@ class UserService extends BaseService {
       rethrow;
     }
   }
+
+  /// Get statistics for a user including project count, task count, and workspace count
+  Future<Map<String, int>> getUserStats(String uid) async {
+    try {
+      int projectCount = 0;
+      int taskCount = 0;
+      int workspaceCount = 0;
+
+      // Get workspace count - workspaces where user is owner
+      final workspaceSnapshot = await firestore
+          .collection(AppConstants.workspacesCollection)
+          .where('ownerId', isEqualTo: uid)
+          .get();
+      workspaceCount = workspaceSnapshot.size;
+
+      // Get project count - projects in all workspaces owned by user
+      for (var workspaceDoc in workspaceSnapshot.docs) {
+        final projectSnapshot = await firestore
+            .collection(AppConstants.workspacesCollection)
+            .doc(workspaceDoc.id)
+            .collection(AppConstants.projectsCollection)
+            .get();
+        projectCount += projectSnapshot.size;
+      }
+
+      // Get task count - tasks assigned to user across all projects
+      // First get all workspaces the user is a member of
+      final memberWorkspaceSnapshot = await firestore
+          .collection(AppConstants.workspacesCollection)
+          .where('members', arrayContains: uid)
+          .get();
+
+      // For each workspace, get all projects
+      for (var workspaceDoc in memberWorkspaceSnapshot.docs) {
+        final projectSnapshot = await firestore
+            .collection(AppConstants.workspacesCollection)
+            .doc(workspaceDoc.id)
+            .collection(AppConstants.projectsCollection)
+            .get();
+
+        // For each project, get tasks assigned to user
+        for (var projectDoc in projectSnapshot.docs) {
+          final taskSnapshot = await firestore
+              .collection(AppConstants.workspacesCollection)
+              .doc(workspaceDoc.id)
+              .collection(AppConstants.projectsCollection)
+              .doc(projectDoc.id)
+              .collection(AppConstants.tasksCollection)
+              .where('assigneeId', isEqualTo: uid)
+              .get();
+          taskCount += taskSnapshot.size;
+        }
+      }
+
+      return {
+        'projects': projectCount,
+        'tasks': taskCount,
+        'workspaces': workspaceCount,
+      };
+    } catch (e) {
+      Logger.error('Error getting user stats: $e');
+      rethrow;
+    }
+  }
 }

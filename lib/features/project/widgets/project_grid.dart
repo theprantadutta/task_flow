@@ -6,12 +6,16 @@ import 'package:task_flow/features/project/widgets/project_card_enhanced.dart';
 class ProjectGrid extends StatelessWidget {
   final List<Project> projects;
   final Function(Project) onProjectTap;
+  final Function(Project) onProjectEdit;
+  final Function(Project) onProjectDelete;
   final VoidCallback onCreateProject;
 
   const ProjectGrid({
     super.key,
     required this.projects,
     required this.onProjectTap,
+    required this.onProjectEdit,
+    required this.onProjectDelete,
     required this.onCreateProject,
   });
 
@@ -67,6 +71,8 @@ class ProjectGrid extends StatelessWidget {
         return EnhancedProjectCard(
           project: project,
           onTap: () => onProjectTap(project),
+          onEdit: () => onProjectEdit(project),
+          onDelete: () => onProjectDelete(project),
           progress: _getProjectProgress(index), // TODO: Replace with actual progress calculation
         ).animate().fade(duration: 300.ms).slideY(begin: 0.2, duration: 300.ms);
       },

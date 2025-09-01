@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_flow/features/auth/bloc/auth_bloc.dart';
+import 'package:task_flow/features/task/presentation/screens/task_detail_screen.dart';
 import 'package:task_flow/features/task/services/personal_task_service.dart';
 import 'package:task_flow/features/task/widgets/create_task_form.dart';
 import 'package:task_flow/features/task/widgets/kanban_board_view.dart';
@@ -9,18 +10,22 @@ import 'package:task_flow/features/task/widgets/task_list_view.dart';
 import 'package:task_flow/features/task/widgets/task_summary_header.dart';
 import 'package:task_flow/features/task/widgets/view_toggle.dart';
 import 'package:task_flow/shared/models/task.dart';
+import 'package:task_flow/shared/models/workspace.dart';
+import 'package:task_flow/shared/models/project.dart';
 import 'package:task_flow/shared/services/project_service.dart';
 import 'package:task_flow/shared/services/task_service.dart';
 import 'package:task_flow/shared/services/workspace_service.dart';
 
 class TasksScreen extends StatefulWidget {
-  const TasksScreen({super.key});
+  final VoidCallback? onTaskCreated; // Add callback parameter
+
+  const TasksScreen({super.key, this.onTaskCreated});
 
   @override
   State<TasksScreen> createState() => _TasksScreenState();
 }
 
-class _TasksScreenState extends State<TasksScreen> {
+class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
   late PersonalTaskService _personalTaskService;
   late TaskService _taskService;
   late WorkspaceService _workspaceService;
@@ -40,10 +45,32 @@ class _TasksScreenState extends State<TasksScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _personalTaskService = PersonalTaskService();
     _taskService = TaskService();
     _workspaceService = WorkspaceService();
     _projectService = ProjectService();
+    _loadTasks();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh tasks when app comes back to foreground
+    if (state == AppLifecycleState.resumed) {
+      _loadTasks();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh tasks when the widget is rebuilt
     _loadTasks();
   }
 
@@ -117,7 +144,7 @@ class _TasksScreenState extends State<TasksScreen> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Please create a workspace and project first'),
+              content: Text('Please create a workspace first'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -125,9 +152,19 @@ class _TasksScreenState extends State<TasksScreen> {
         return;
       }
 
-      // Get projects from first workspace
+      // Let user select a workspace
+      Workspace? selectedWorkspace;
+      if (workspaces.length > 1) {
+        selectedWorkspace = await _showWorkspaceSelectionDialog(workspaces);
+      } else {
+        selectedWorkspace = workspaces.first;
+      }
+
+      if (selectedWorkspace == null) return;
+
+      // Get projects from selected workspace
       final projects = await _projectService.getWorkspaceProjects(
-        workspaces.first.id,
+        selectedWorkspace.id,
       );
 
       if (projects.isEmpty) {
@@ -142,7 +179,15 @@ class _TasksScreenState extends State<TasksScreen> {
         return;
       }
 
-      final selectedProjectId = projects.first.id;
+      // Let user select a project
+      Project? selectedProject;
+      if (projects.length > 1) {
+        selectedProject = await _showProjectSelectionDialog(projects);
+      } else {
+        selectedProject = projects.first;
+      }
+
+      if (selectedProject == null) return;
 
       if (context.mounted) {
         showDialog(
@@ -150,68 +195,60 @@ class _TasksScreenState extends State<TasksScreen> {
           builder: (BuildContext dialogContext) {
             return AlertDialog(
               title: const Text('Create Task'),
-              content: CreateTaskForm(
-                projectId: selectedProjectId,
-                reporterId: user.uid,
-                onCreate: (task) async {
-                  try {
-                    // Find workspace ID for the project
-                    String? workspaceId;
-                    for (final workspace in workspaces) {
-                      final workspaceProjects = await _projectService
-                          .getWorkspaceProjects(workspace.id);
-                      if (workspaceProjects.any(
-                        (p) => p.id == selectedProjectId,
-                      )) {
-                        workspaceId = workspace.id;
-                        break;
+              content: SingleChildScrollView(
+                child: CreateTaskForm(
+                  projectId: selectedProject!.id,
+                  reporterId: user.uid,
+                  onCreate: (task) async {
+                    try {
+                      // Create the task
+                      final newTask = await _taskService.createTask(
+                        workspaceId: selectedWorkspace!.id,
+                        projectId: selectedProject!.id,
+                        title: task.title,
+                        description: task.description,
+                        status: task.status,
+                        assigneeId: task.assigneeId,
+                        reporterId: task.reporterId,
+                        dueDate: task.dueDate,
+                        priority: task.priority,
+                      );
+
+                      if (dialogContext.mounted) {
+                        setState(() {
+                          _allTasks.add(newTask);
+                          _applyFilters();
+                        });
+
+                        Navigator.pop(dialogContext); // Close the dialog
+
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text('Task created successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+
+                        // Refresh stats
+                        _loadTasks();
+                        
+                        // Notify that a task was created
+                        if (widget.onTaskCreated != null) {
+                          widget.onTaskCreated!();
+                        }
+                      }
+                    } catch (e) {
+                      if (dialogContext.mounted) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to create task: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
                       }
                     }
-
-                    if (workspaceId == null) return;
-
-                    // Create the task
-                    final newTask = await _taskService.createTask(
-                      workspaceId: workspaceId,
-                      projectId: selectedProjectId,
-                      title: task.title,
-                      description: task.description,
-                      status: task.status,
-                      assigneeId: task.assigneeId,
-                      reporterId: task.reporterId,
-                      dueDate: task.dueDate,
-                      priority: task.priority,
-                    );
-
-                    if (dialogContext.mounted) {
-                      setState(() {
-                        _allTasks.add(newTask);
-                        _applyFilters();
-                      });
-
-                      Navigator.pop(dialogContext); // Close the dialog
-
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(
-                          content: Text('Task created successfully'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-
-                      // Refresh stats
-                      _loadTasks();
-                    }
-                  } catch (e) {
-                    if (dialogContext.mounted) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to create task: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                },
+                  },
+                ),
               ),
               actions: [
                 TextButton(
@@ -237,27 +274,183 @@ class _TasksScreenState extends State<TasksScreen> {
     }
   }
 
+  Future<Workspace?> _showWorkspaceSelectionDialog(List<Workspace> workspaces) async {
+    return await showDialog<Workspace>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Workspace'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: workspaces.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(workspaces[index].name),
+                  onTap: () {
+                    Navigator.pop(context, workspaces[index]);
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Project?> _showProjectSelectionDialog(List<Project> projects) async {
+    return await showDialog<Project>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Project'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: projects.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(projects[index].name),
+                  onTap: () {
+                    Navigator.pop(context, projects[index]);
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _onTaskTap(Task task) {
-    // TODO: Navigate to task detail screen
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Task tapped: ${task.title}'),
-          backgroundColor: Colors.blue,
-        ),
-      );
-    }
+    // Find workspace ID for this task
+    // We need to find the workspace that contains this task's project
+    _navigateToTaskDetail(task);
   }
 
   void _onTaskEdit(Task task) {
-    // TODO: Implement task editing
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Edit task: ${task.title}'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+    // Navigate to task detail screen for editing
+    _navigateToTaskDetail(task);
+  }
+
+  Future<void> _navigateToTaskDetail(Task task) async {
+    try {
+      final user = context.read<AuthBloc>().state.user;
+      if (user == null) return;
+
+      // Get user's workspaces
+      final workspaces = await _workspaceService.getUserWorkspaces(user.uid);
+      
+      // Find the workspace that contains this task's project
+      String workspaceId = ''; // Default to empty string
+      for (final workspace in workspaces) {
+        try {
+          final project = await _projectService.getProject(
+            workspace.id,
+            task.projectId,
+          );
+          if (project != null) {
+            workspaceId = workspace.id;
+            break;
+          }
+        } catch (e) {
+          // Continue to next workspace
+        }
+      }
+
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TaskDetailScreen(
+              task: task,
+              workspaceId: workspaceId, // Now always a String
+              onTaskUpdated: (updatedTask) {
+                setState(() {
+                  final index = _allTasks.indexWhere((t) => t.id == updatedTask.id);
+                  if (index != -1) {
+                    _allTasks[index] = updatedTask;
+                    _applyFilters();
+                  }
+                });
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error navigating to task: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteTask(Task task) async {
+    try {
+      // We need to find the workspace ID for this task
+      final user = context.read<AuthBloc>().state.user;
+      if (user == null) return;
+
+      // Get user's workspaces
+      final workspaces = await _workspaceService.getUserWorkspaces(user.uid);
+      
+      // Find the workspace that contains this task's project
+      String? workspaceId;
+      for (final workspace in workspaces) {
+        try {
+          final project = await _projectService.getProject(
+            workspace.id,
+            task.projectId,
+          );
+          if (project != null) {
+            workspaceId = workspace.id;
+            break;
+          }
+        } catch (e) {
+          // Continue to next workspace
+        }
+      }
+
+      if (workspaceId == null) {
+        throw Exception('Could not find workspace for task');
+      }
+
+      await _taskService.deleteTask(workspaceId, task.projectId, task.id);
+
+      if (mounted) {
+        setState(() {
+          _allTasks.removeWhere((t) => t.id == task.id);
+          _applyFilters();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Task deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Refresh stats
+        _loadTasks();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete task: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -278,39 +471,8 @@ class _TasksScreenState extends State<TasksScreen> {
             ),
             TextButton(
               onPressed: () async {
-                try {
-                  // TODO: Find workspace ID for this task
-                  // For now, we'll just remove it from the local list
-                  if (context.mounted) {
-                    setState(() {
-                      _allTasks.removeWhere((t) => t.id == task.id);
-                      _applyFilters();
-                    });
-
-                    Navigator.pop(dialogContext); // Close the dialog
-
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Task deleted successfully'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-
-                    // Refresh stats
-                    _loadTasks();
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Failed to delete task: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
+                Navigator.pop(dialogContext); // Close the dialog
+                await _deleteTask(task);
               },
               child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
@@ -326,7 +488,10 @@ class _TasksScreenState extends State<TasksScreen> {
       appBar: AppBar(
         title: const Text('My Tasks'),
         actions: [
-          IconButton(onPressed: _loadTasks, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _loadTasks,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: _isLoading

@@ -4,11 +4,15 @@ import 'package:task_flow/shared/models/project.dart';
 class ProjectCard extends StatelessWidget {
   final Project project;
   final VoidCallback onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const ProjectCard({
     super.key,
     required this.project,
     required this.onTap,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -35,10 +39,35 @@ class ProjectCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Icon(
-                    Icons.folder,
-                    color: Theme.of(context).primaryColor,
-                  ),
+                  if (onEdit != null && onDelete != null)
+                    PopupMenuButton<String>(
+                      onSelected: (String result) {
+                        switch (result) {
+                          case 'edit':
+                            onEdit!();
+                            break;
+                          case 'delete':
+                            onDelete!();
+                            break;
+                        }
+                      },
+                      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                        const PopupMenuItem<String>(
+                          value: 'edit',
+                          child: ListTile(
+                            leading: Icon(Icons.edit),
+                            title: Text('Edit'),
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'delete',
+                          child: ListTile(
+                            leading: Icon(Icons.delete, color: Colors.red),
+                            title: Text('Delete', style: TextStyle(color: Colors.red)),
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
               if (project.description != null) ...[

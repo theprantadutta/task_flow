@@ -9,7 +9,9 @@ import 'package:task_flow/shared/services/project_service.dart';
 import 'package:task_flow/shared/services/workspace_service.dart';
 
 class ProjectsScreen extends StatefulWidget {
-  const ProjectsScreen({super.key});
+  final VoidCallback? onTaskCreated; // Add callback parameter
+
+  const ProjectsScreen({super.key, this.onTaskCreated});
 
   @override
   State<ProjectsScreen> createState() => _ProjectsScreenState();
@@ -98,69 +100,74 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               builder: (context, setState) {
                 return AlertDialog(
                   title: const Text('Create Project'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedWorkspaceId,
-                        items: workspaces.map((workspace) {
-                          return DropdownMenuItem(
-                            value: workspace.id,
-                            child: Text(workspace.name),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedWorkspaceId = value;
-                          });
-                        },
-                        decoration: const InputDecoration(
-                          labelText: 'Workspace',
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      CreateProjectForm(
-                        workspaceId: selectedWorkspaceId ?? '',
-                        ownerId: user.uid,
-                        onCreate: (project) async {
-                          if (selectedWorkspaceId == null) return;
-
-                          try {
-                            final newProject = await _projectService
-                                .createProject(
-                                  workspaceId: selectedWorkspaceId!,
-                                  name: project.name,
-                                  description: project.description,
-                                  ownerId: user.uid,
-                                );
-
-                            if (mounted) {
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DropdownButtonFormField<String>(
+                            initialValue: selectedWorkspaceId,
+                            items: workspaces.map((workspace) {
+                              return DropdownMenuItem(
+                                value: workspace.id,
+                                child: Text(workspace.name),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
                               setState(() {
-                                _projects.add(newProject);
+                                selectedWorkspaceId = value;
                               });
+                            },
+                            decoration: const InputDecoration(
+                              labelText: 'Workspace',
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          CreateProjectForm(
+                            workspaceId: selectedWorkspaceId ?? '',
+                            ownerId: user.uid,
+                            onCreate: (project) async {
+                              if (selectedWorkspaceId == null) return;
 
-                              Navigator.pop(dialogContext); // Close the dialog
+                              try {
+                                final newProject = await _projectService
+                                    .createProject(
+                                      workspaceId: selectedWorkspaceId!,
+                                      name: project.name,
+                                      description: project.description,
+                                      ownerId: user.uid,
+                                    );
 
-                              ScaffoldMessenger.of(dialogContext).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Project created successfully'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            if (dialogContext.mounted) {
-                              ScaffoldMessenger.of(dialogContext).showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed to create project: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        },
+                                if (mounted) {
+                                  setState(() {
+                                    _projects.add(newProject);
+                                  });
+
+                                  Navigator.pop(dialogContext); // Close the dialog
+
+                                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Project created successfully'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (dialogContext.mounted) {
+                                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to create project: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 );
               },
@@ -173,6 +180,128 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load workspaces: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showEditProjectDialog(Project project) {
+    final user = context.read<AuthBloc>().state.user;
+    if (user == null) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Edit Project'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: CreateProjectForm(
+                workspaceId: project.workspaceId,
+                ownerId: project.ownerId,
+                onCreate: (updatedProject) async {
+                  try {
+                    final projectToUpdate = Project(
+                      id: project.id,
+                      workspaceId: project.workspaceId,
+                      name: updatedProject.name,
+                      description: updatedProject.description,
+                      ownerId: project.ownerId,
+                      createdAt: project.createdAt,
+                    );
+                    
+                    await _projectService.updateProject(projectToUpdate);
+                    
+                    if (mounted) {
+                      setState(() {
+                        final index = _projects.indexWhere((p) => p.id == project.id);
+                        if (index != -1) {
+                          _projects[index] = projectToUpdate;
+                        }
+                      });
+
+                      Navigator.pop(dialogContext); // Close the dialog
+
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        const SnackBar(
+                          content: Text('Project updated successfully'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (dialogContext.mounted) {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to update project: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialog(Project project) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Project'),
+          content: Text('Are you sure you want to delete "${project.name}"? This action cannot be undone and will delete all tasks in this project.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context); // Close the dialog
+                await _deleteProject(project.id);
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteProject(String projectId) async {
+    try {
+      // Find the project to get workspace ID
+      final project = _projects.firstWhere((p) => p.id == projectId);
+      
+      await _projectService.deleteProject(project.workspaceId, projectId);
+      
+      if (mounted) {
+        setState(() {
+          _projects.removeWhere((p) => p.id == projectId);
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Project deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete project: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -226,10 +355,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        ProjectListScreen(workspaceId: workspaceId),
+                        ProjectListScreen(workspaceId: workspaceId, onTaskCreated: widget.onTaskCreated), // Pass callback
                   ),
                 );
               },
+              onProjectEdit: _showEditProjectDialog,
+              onProjectDelete: _showDeleteConfirmationDialog,
               onCreateProject: _showCreateProjectDialog,
             ),
       floatingActionButton: FloatingActionButton(

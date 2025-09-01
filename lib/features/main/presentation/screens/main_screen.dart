@@ -23,19 +23,17 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-
-  final List<Widget> _children = [
-    const DashboardScreen(),
-    const WorkspaceListScreen(),
-    const ProjectsScreen(),
-    const TasksScreen(),
-    const ProfileScreen(),
-  ];
+  final ValueNotifier<bool> _refreshTasks = ValueNotifier<bool>(false);
 
   void onTabTapped(int index) {
     if (_currentIndex != index) {
       setState(() {
         _currentIndex = index;
+        
+        // If we're switching to the tasks screen, trigger a refresh
+        if (_currentIndex == 3) {
+          _refreshTasks.value = !_refreshTasks.value;
+        }
       });
     }
   }
@@ -243,8 +241,46 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Create widgets with proper callbacks
+    final Widget projectsScreen = ProjectsScreen(
+      onTaskCreated: () {
+        // When a task is created in a project, mark that we need to refresh tasks
+        _refreshTasks.value = !_refreshTasks.value;
+        
+        // Show a message that the task was created
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Task created successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      },
+    );
+
+    final Widget tasksScreen = ValueListenableBuilder<bool>(
+      valueListenable: _refreshTasks,
+      builder: (context, refresh, child) {
+        return TasksScreen(
+          key: ValueKey(refresh), // This will force a rebuild when refresh changes
+          onTaskCreated: () {
+            // When a task is created directly in the tasks screen
+            _refreshTasks.value = !_refreshTasks.value;
+          },
+        );
+      },
+    );
+
+    // Create a new list with the updated screens
+    final List<Widget> children = [
+      const DashboardScreen(),
+      const WorkspaceListScreen(),
+      projectsScreen,
+      tasksScreen,
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
-      body: _children[_currentIndex],
+      body: children[_currentIndex],
       bottomNavigationBar: EnhancedBottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: onTabTapped,

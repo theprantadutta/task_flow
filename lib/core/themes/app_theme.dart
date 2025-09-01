@@ -77,10 +77,10 @@ class AppTheme {
       backgroundColor: Colors.transparent,
       foregroundColor: Colors.white,
     ),
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: Color(0xFF1E1E1E),
-      selectedItemColor: Colors.deepPurple,
-      unselectedItemColor: Colors.grey,
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: const Color(0xFF1E1E1E),
+      selectedItemColor: Colors.deepPurpleAccent, // Changed from Colors.deepPurple for better contrast
+      unselectedItemColor: Colors.grey[300], // Changed from Colors.grey for better visibility
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: Colors.deepPurple,

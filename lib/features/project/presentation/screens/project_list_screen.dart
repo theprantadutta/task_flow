@@ -9,8 +9,9 @@ import 'package:task_flow/shared/services/project_service.dart';
 
 class ProjectListScreen extends StatefulWidget {
   final String workspaceId;
+  final VoidCallback? onTaskCreated; // Add this callback parameter
 
-  const ProjectListScreen({super.key, required this.workspaceId});
+  const ProjectListScreen({super.key, required this.workspaceId, this.onTaskCreated});
 
   @override
   State<ProjectListScreen> createState() => _ProjectListScreenState();
@@ -92,6 +93,61 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     }
   }
 
+  Future<void> _updateProject(Project updatedProject) async {
+    try {
+      await _projectService.updateProject(updatedProject);
+      if (mounted) {
+        setState(() {
+          final index = _projects.indexWhere((p) => p.id == updatedProject.id);
+          if (index != -1) {
+            _projects[index] = updatedProject;
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Project updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update project: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteProject(String projectId) async {
+    try {
+      await _projectService.deleteProject(widget.workspaceId, projectId);
+      if (mounted) {
+        setState(() {
+          _projects.removeWhere((p) => p.id == projectId);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Project deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete project: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showCreateProjectDialog() {
     final user = context.read<AuthBloc>().state.user;
     if (user == null) return;
@@ -105,6 +161,62 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
             ownerId: user.uid,
             onCreate: _createProject,
           ),
+        );
+      },
+    );
+  }
+
+  void _showEditProjectDialog(Project project) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Edit Project'),
+          content: CreateProjectForm(
+            workspaceId: widget.workspaceId,
+            ownerId: project.ownerId,
+            onCreate: (updatedProject) async {
+              final projectToUpdate = Project(
+                id: project.id,
+                workspaceId: project.workspaceId,
+                name: updatedProject.name,
+                description: updatedProject.description,
+                ownerId: project.ownerId,
+                createdAt: project.createdAt,
+              );
+              await _updateProject(projectToUpdate);
+              if (context.mounted) {
+                Navigator.pop(context); // Close the dialog
+              }
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialog(Project project) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Project'),
+          content: Text('Are you sure you want to delete "${project.name}"? This action cannot be undone and will delete all tasks in this project.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context); // Close the dialog
+                await _deleteProject(project.id);
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
         );
       },
     );
@@ -135,10 +247,13 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
                       workspaceId: widget.workspaceId,
                       projectId: project.id,
                       projectName: project.name,
+                      onTaskCreated: widget.onTaskCreated, // Pass the callback through
                     ),
                   ),
                 );
               },
+              onProjectEdit: _showEditProjectDialog,
+              onProjectDelete: _showDeleteConfirmationDialog,
               onCreateProject: _showCreateProjectDialog,
             ),
       floatingActionButton: FloatingActionButton(

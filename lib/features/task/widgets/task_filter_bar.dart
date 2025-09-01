@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class TaskFilterBar extends StatefulWidget {
-  final Function(String, String, String) onFilterChanged; // status, priority, search
+  final Function(String, String, String)
+  onFilterChanged; // status, priority, search
 
   const TaskFilterBar({super.key, required this.onFilterChanged});
 
@@ -44,9 +45,7 @@ class _TaskFilterBarState extends State<TaskFilterBar> {
   Widget build(BuildContext context) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -64,7 +63,7 @@ class _TaskFilterBarState extends State<TaskFilterBar> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Filter chips
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -112,7 +111,7 @@ class _TaskFilterBarState extends State<TaskFilterBar> {
               ],
             ),
             const SizedBox(height: 12),
-            
+
             // Priority filter
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -179,11 +178,9 @@ class _TaskFilterBarState extends State<TaskFilterBar> {
           ? Colors.grey[800]
           : Colors.grey[200],
       labelStyle: TextStyle(
-        color: isSelected
-            ? Theme.of(context).primaryColor
-            : Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Colors.black,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black,
       ),
     );
   }

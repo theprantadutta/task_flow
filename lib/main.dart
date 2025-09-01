@@ -35,6 +35,7 @@ class MyApp extends StatelessWidget {
                 builder: (context, state) {
                   return MaterialApp(
                     title: 'TaskFlow',
+                    debugShowCheckedModeBanner: false,
                     theme: AppTheme.lightTheme,
                     darkTheme: AppTheme.darkTheme,
                     themeMode: themeProvider.themeMode,

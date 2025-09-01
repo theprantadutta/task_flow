@@ -75,6 +75,31 @@ class _WorkspaceDetailScreenState extends State<WorkspaceDetailScreen> {
     }
   }
 
+  Future<void> _deleteWorkspace() async {
+    try {
+      await _workspaceService.deleteWorkspace(_workspace!.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Workspace deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Navigate back to the previous screen
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete workspace: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showEditWorkspaceDialog() {
     if (_workspace == null) return;
     
@@ -103,6 +128,35 @@ class _WorkspaceDetailScreenState extends State<WorkspaceDetailScreen> {
     );
   }
 
+  void _showDeleteConfirmationDialog() {
+    if (_workspace == null) return;
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Workspace'),
+          content: Text('Are you sure you want to delete "${_workspace!.name}"? This action cannot be undone and will delete all projects and tasks in this workspace.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context); // Close the dialog
+                await _deleteWorkspace();
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,6 +166,10 @@ class _WorkspaceDetailScreenState extends State<WorkspaceDetailScreen> {
           IconButton(
             onPressed: _showEditWorkspaceDialog,
             icon: const Icon(Icons.edit),
+          ),
+          IconButton(
+            onPressed: _showDeleteConfirmationDialog,
+            icon: const Icon(Icons.delete),
           ),
         ],
       ),

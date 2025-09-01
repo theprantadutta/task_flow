@@ -32,9 +32,11 @@ class EnhancedBottomNavigationBar extends StatelessWidget {
         child: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
           backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-          selectedItemColor: Theme.of(context).primaryColor,
+          selectedItemColor: isDarkMode 
+              ? Colors.deepPurpleAccent // Better contrast for dark mode
+              : Theme.of(context).primaryColor,
           unselectedItemColor: isDarkMode 
-              ? Colors.grey[400] 
+              ? Colors.grey[300] // Better visibility in dark mode
               : Colors.grey[600],
           currentIndex: currentIndex,
           onTap: onTap,

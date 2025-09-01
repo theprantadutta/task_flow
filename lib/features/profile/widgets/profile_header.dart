@@ -4,8 +4,9 @@ import 'package:task_flow/shared/models/user.dart';
 
 class ProfileHeader extends StatelessWidget {
   final User user;
+  final Map<String, int> userStats;
 
-  const ProfileHeader({super.key, required this.user});
+  const ProfileHeader({super.key, required this.user, required this.userStats});
 
   @override
   Widget build(BuildContext context) {
@@ -72,9 +73,9 @@ class ProfileHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildStatItem(context, 'Projects', '12'),
-        _buildStatItem(context, 'Tasks', '42'),
-        _buildStatItem(context, 'Workspaces', '3'),
+        _buildStatItem(context, 'Projects', userStats['projects']?.toString() ?? '0'),
+        _buildStatItem(context, 'Tasks', userStats['tasks']?.toString() ?? '0'),
+        _buildStatItem(context, 'Workspaces', userStats['workspaces']?.toString() ?? '0'),
       ],
     );
   }

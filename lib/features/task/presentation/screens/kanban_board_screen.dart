@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:task_flow/features/auth/bloc/auth_bloc.dart';
+import 'package:task_flow/features/task/widgets/create_task_form.dart';
 import 'package:task_flow/features/task/widgets/kanban_board.dart';
 import 'package:task_flow/shared/models/task.dart';
 import 'package:task_flow/shared/services/task_service.dart';
@@ -7,12 +10,14 @@ class KanbanBoardScreen extends StatefulWidget {
   final String workspaceId;
   final String projectId;
   final String projectName;
+  final VoidCallback? onTaskCreated;
 
   const KanbanBoardScreen({
     super.key,
     required this.workspaceId,
     required this.projectId,
     required this.projectName,
+    this.onTaskCreated,
   });
 
   @override
@@ -90,6 +95,81 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
     }
   }
 
+  void _showCreateTaskDialog() {
+    final user = context.read<AuthBloc>().state.user;
+    if (user == null) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Create Task'),
+          content: SingleChildScrollView(
+            child: CreateTaskForm(
+              projectId: widget.projectId,
+              reporterId: user.uid,
+              onCreate: (task) async {
+                try {
+                  final newTask = await _taskService.createTask(
+                    workspaceId: widget.workspaceId,
+                    projectId: widget.projectId,
+                    title: task.title,
+                    description: task.description,
+                    status: task.status,
+                    assigneeId: task.assigneeId,
+                    reporterId: task.reporterId,
+                    dueDate: task.dueDate,
+                    priority: task.priority,
+                  );
+
+                  if (dialogContext.mounted) {
+                    setState(() {
+                      _tasks.add(newTask);
+                    });
+
+                    Navigator.pop(dialogContext); // Close the dialog
+
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(
+                        content: Text('Task created successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+
+                    // Reload tasks to ensure consistency
+                    _loadTasks();
+                    
+                    // Notify that a task was created
+                    if (widget.onTaskCreated != null) {
+                      widget.onTaskCreated!();
+                    }
+                  }
+                } catch (e) {
+                  if (dialogContext.mounted) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to create task: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,9 +177,7 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
         title: Text(widget.projectName),
         actions: [
           IconButton(
-            onPressed: () {
-              // Add new task
-            },
+            onPressed: _showCreateTaskDialog,
             icon: const Icon(Icons.add),
           ),
         ],
@@ -122,9 +200,7 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
       floatingActionButton: FloatingActionButton(
         tooltip: 'Add new task',
         heroTag: 'addTask',
-        onPressed: () {
-          // Add new task
-        },
+        onPressed: _showCreateTaskDialog,
         child: const Icon(Icons.add),
       ),
     );

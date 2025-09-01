@@ -17,6 +17,44 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
+  Map<String, int> _userStats = {
+    'projects': 0,
+    'tasks': 0,
+    'workspaces': 0,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserStats();
+  }
+
+  Future<void> _loadUserStats() async {
+    try {
+      final user = context.read<AuthBloc>().state.user;
+      if (user != null) {
+        final userService = UserService();
+        final stats = await userService.getUserStats(user.uid);
+        
+        if (mounted) {
+          setState(() {
+            _userStats = stats;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to load user stats: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    ProfileHeader(user: state.user!),
+                    ProfileHeader(user: state.user!, userStats: _userStats),
                     const SizedBox(height: 24),
                     
                     // Profile Completion Card

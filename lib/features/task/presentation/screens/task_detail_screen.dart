@@ -1,10 +1,86 @@
 import 'package:flutter/material.dart';
+import 'package:task_flow/features/task/widgets/edit_task_form.dart';
 import 'package:task_flow/shared/models/task.dart';
+import 'package:task_flow/shared/services/task_service.dart';
 
-class TaskDetailScreen extends StatelessWidget {
+class TaskDetailScreen extends StatefulWidget {
   final Task task;
+  final String workspaceId;
+  final Function(Task)? onTaskUpdated;
 
-  const TaskDetailScreen({super.key, required this.task});
+  const TaskDetailScreen({
+    super.key,
+    required this.task,
+    required this.workspaceId,
+    this.onTaskUpdated,
+  });
+
+  @override
+  State<TaskDetailScreen> createState() => _TaskDetailScreenState();
+}
+
+class _TaskDetailScreenState extends State<TaskDetailScreen> {
+  late Task _task;
+
+  @override
+  void initState() {
+    super.initState();
+    _task = widget.task;
+  }
+
+  Future<void> _updateTask(Task updatedTask) async {
+    try {
+      final taskService = TaskService();
+      await taskService.updateTask(updatedTask);
+      
+      setState(() {
+        _task = updatedTask;
+      });
+      
+      if (widget.onTaskUpdated != null) {
+        widget.onTaskUpdated!(updatedTask);
+      }
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Task updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update task: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showEditTaskDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: SingleChildScrollView(
+            child: EditTaskForm(
+              task: _task,
+              onSave: (updatedTask) async {
+                await _updateTask(updatedTask);
+                if (context.mounted) {
+                  Navigator.pop(context); // Close the dialog
+                }
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,9 +89,7 @@ class TaskDetailScreen extends StatelessWidget {
         title: const Text('Task Details'),
         actions: [
           IconButton(
-            onPressed: () {
-              // TODO: Implement edit functionality
-            },
+            onPressed: _showEditTaskDialog,
             icon: const Icon(Icons.edit),
           ),
         ],
@@ -31,7 +105,7 @@ class TaskDetailScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      task.title,
+                      _task.title,
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -43,11 +117,11 @@ class TaskDetailScreen extends StatelessWidget {
                       vertical: 6.0,
                     ),
                     decoration: BoxDecoration(
-                      color: _getPriorityColor(task.priority),
+                      color: _getPriorityColor(_task.priority),
                       borderRadius: BorderRadius.circular(16.0),
                     ),
                     child: Text(
-                      task.priority,
+                      _task.priority,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.white,
@@ -60,9 +134,9 @@ class TaskDetailScreen extends StatelessWidget {
               const SizedBox(height: 8),
               
               // Task description
-              if (task.description != null) ...[
+              if (_task.description != null) ...[
                 Text(
-                  task.description!,
+                  _task.description!,
                   style: const TextStyle(
                     fontSize: 16,
                   ),
@@ -80,22 +154,22 @@ class TaskDetailScreen extends StatelessWidget {
                         context,
                         icon: Icons.calendar_today,
                         label: 'Created',
-                        value: _formatDate(task.createdAt),
+                        value: _formatDate(_task.createdAt),
                       ),
                       const SizedBox(height: 8),
                       _buildMetadataRow(
                         context,
                         icon: Icons.update,
                         label: 'Last Updated',
-                        value: _formatDate(task.updatedAt),
+                        value: _formatDate(_task.updatedAt),
                       ),
-                      if (task.dueDate != null) ...[
+                      if (_task.dueDate != null) ...[
                         const SizedBox(height: 8),
                         _buildMetadataRow(
                           context,
                           icon: Icons.event,
                           label: 'Due Date',
-                          value: _formatDate(task.dueDate!),
+                          value: _formatDate(_task.dueDate!),
                         ),
                       ],
                       const SizedBox(height: 8),
@@ -103,22 +177,22 @@ class TaskDetailScreen extends StatelessWidget {
                         context,
                         icon: Icons.flag,
                         label: 'Status',
-                        value: task.status,
+                        value: _formatStatus(_task.status),
                       ),
                       const SizedBox(height: 8),
                       _buildMetadataRow(
                         context,
                         icon: Icons.person,
                         label: 'Reporter',
-                        value: task.reporterId, // TODO: Replace with actual user name
+                        value: _task.reporterId, // TODO: Replace with actual user name
                       ),
-                      if (task.assigneeId != null) ...[
+                      if (_task.assigneeId != null) ...[
                         const SizedBox(height: 8),
                         _buildMetadataRow(
                           context,
                           icon: Icons.assignment_ind,
                           label: 'Assignee',
-                          value: task.assigneeId!, // TODO: Replace with actual user name
+                          value: _task.assigneeId!, // TODO: Replace with actual user name
                         ),
                       ],
                     ],
@@ -244,5 +318,18 @@ class TaskDetailScreen extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _formatStatus(String status) {
+    switch (status) {
+      case 'todo':
+        return 'To Do';
+      case 'in_progress':
+        return 'In Progress';
+      case 'done':
+        return 'Done';
+      default:
+        return status;
+    }
   }
 }

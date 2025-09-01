@@ -5,12 +5,16 @@ import 'package:task_flow/features/project/widgets/project_card.dart';
 class ProjectList extends StatelessWidget {
   final List<Project> projects;
   final Function(Project) onProjectTap;
+  final Function(Project)? onProjectEdit;
+  final Function(Project)? onProjectDelete;
   final Function() onCreateProject;
 
   const ProjectList({
     super.key,
     required this.projects,
     required this.onProjectTap,
+    this.onProjectEdit,
+    this.onProjectDelete,
     required this.onCreateProject,
   });
 
@@ -56,6 +60,8 @@ class ProjectList extends StatelessWidget {
                 return ProjectCard(
                   project: project,
                   onTap: () => onProjectTap(project),
+                  onEdit: onProjectEdit != null ? () => onProjectEdit!(project) : null,
+                  onDelete: onProjectDelete != null ? () => onProjectDelete!(project) : null,
                 );
               },
             ),
