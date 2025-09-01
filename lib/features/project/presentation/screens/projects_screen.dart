@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_flow/features/auth/bloc/auth_bloc.dart';
-import 'package:task_flow/features/project/widgets/project_grid.dart';
-import 'package:task_flow/features/project/widgets/create_project_form.dart';
 import 'package:task_flow/features/project/presentation/screens/project_list_screen.dart';
+import 'package:task_flow/features/project/widgets/create_project_form.dart';
+import 'package:task_flow/features/project/widgets/project_grid.dart';
 import 'package:task_flow/shared/models/project.dart';
 import 'package:task_flow/shared/services/project_service.dart';
 import 'package:task_flow/shared/services/workspace_service.dart';
@@ -35,14 +35,16 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       if (user != null) {
         // Get user's workspaces first
         final workspaces = await _workspaceService.getUserWorkspaces(user.uid);
-        
+
         // Get projects for each workspace
         final allProjects = <Project>[];
         for (final workspace in workspaces) {
-          final projects = await _projectService.getWorkspaceProjects(workspace.id);
+          final projects = await _projectService.getWorkspaceProjects(
+            workspace.id,
+          );
           allProjects.addAll(projects);
         }
-        
+
         if (mounted) {
           setState(() {
             _projects = allProjects;
@@ -84,12 +86,14 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         return;
       }
 
-      if (context.mounted) {
-        String? selectedWorkspaceId = workspaces.isNotEmpty ? workspaces.first.id : null;
+      String? selectedWorkspaceId = workspaces.isNotEmpty
+          ? workspaces.first.id
+          : null;
 
+      if (context.mounted) {
         showDialog(
           context: context,
-          builder: (BuildContext context) {
+          builder: (BuildContext dialogContext) {
             return StatefulBuilder(
               builder: (context, setState) {
                 return AlertDialog(
@@ -98,7 +102,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       DropdownButtonFormField<String>(
-                        value: selectedWorkspaceId,
+                        initialValue: selectedWorkspaceId,
                         items: workspaces.map((workspace) {
                           return DropdownMenuItem(
                             value: workspace.id,
@@ -122,21 +126,22 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                           if (selectedWorkspaceId == null) return;
 
                           try {
-                            final newProject = await _projectService.createProject(
-                              workspaceId: selectedWorkspaceId!,
-                              name: project.name,
-                              description: project.description,
-                              ownerId: user.uid,
-                            );
+                            final newProject = await _projectService
+                                .createProject(
+                                  workspaceId: selectedWorkspaceId!,
+                                  name: project.name,
+                                  description: project.description,
+                                  ownerId: user.uid,
+                                );
 
                             if (mounted) {
                               setState(() {
                                 _projects.add(newProject);
                               });
 
-                              Navigator.pop(context); // Close the dialog
+                              Navigator.pop(dialogContext); // Close the dialog
 
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(dialogContext).showSnackBar(
                                 const SnackBar(
                                   content: Text('Project created successfully'),
                                   backgroundColor: Colors.green,
@@ -144,8 +149,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                               );
                             }
                           } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                            if (dialogContext.mounted) {
+                              ScaffoldMessenger.of(dialogContext).showSnackBar(
                                 SnackBar(
                                   content: Text('Failed to create project: $e'),
                                   backgroundColor: Colors.red,
@@ -216,19 +221,20 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 // Navigate to project detail/Kanban board screen
                 // Find the workspace ID for this project
                 final workspaceId = project.workspaceId;
-                
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ProjectListScreen(
-                      workspaceId: workspaceId,
-                    ),
+                    builder: (context) =>
+                        ProjectListScreen(workspaceId: workspaceId),
                   ),
                 );
               },
               onCreateProject: _showCreateProjectDialog,
             ),
       floatingActionButton: FloatingActionButton(
+        tooltip: 'Create Project',
+        heroTag: 'createProject',
         onPressed: _showCreateProjectDialog,
         child: const Icon(Icons.add),
       ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:task_flow/features/task/widgets/kanban_board.dart';
-import 'package:task_flow/shared/services/task_service.dart';
 import 'package:task_flow/shared/models/task.dart';
+import 'package:task_flow/shared/services/task_service.dart';
 
 class KanbanBoardScreen extends StatefulWidget {
   final String workspaceId;
@@ -66,11 +66,11 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
         task.id,
         newStatus,
       );
-      
+
       if (mounted) {
         // Reload tasks to reflect the change
         _loadTasks();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Task status updated'),
@@ -108,9 +108,20 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
           ? const Center(child: CircularProgressIndicator())
           : KanbanBoard(
               tasks: _tasks,
+              onTaskTap: (task) {
+                // TODO: Implement task tap
+              },
+              onTaskEdit: (task) {
+                // TODO: Implement task edit
+              },
+              onTaskDelete: (task) {
+                // TODO: Implement task delete
+              },
               onTaskStatusChanged: _onTaskStatusChanged,
             ),
       floatingActionButton: FloatingActionButton(
+        tooltip: 'Add new task',
+        heroTag: 'addTask',
         onPressed: () {
           // Add new task
         },

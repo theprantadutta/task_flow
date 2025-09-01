@@ -6,6 +6,9 @@ class TaskColumn extends StatelessWidget {
   final String title;
   final List<Task> tasks;
   final String status;
+  final Function(Task) onTaskTap;
+  final Function(Task) onTaskEdit;
+  final Function(Task) onTaskDelete;
   final Function(Task, String) onTaskStatusChanged;
 
   const TaskColumn({
@@ -13,6 +16,9 @@ class TaskColumn extends StatelessWidget {
     required this.title,
     required this.tasks,
     required this.status,
+    required this.onTaskTap,
+    required this.onTaskEdit,
+    required this.onTaskDelete,
     required this.onTaskStatusChanged,
   });
 
@@ -23,7 +29,7 @@ class TaskColumn extends StatelessWidget {
       margin: const EdgeInsets.all(8.0),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withValues(alpha: 0.2),
@@ -40,10 +46,10 @@ class TaskColumn extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
               color: Theme.of(context).primaryColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(8.0)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12.0)),
             ),
             child: Text(
-              title,
+              '$title (${tasks.length})',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -58,7 +64,12 @@ class TaskColumn extends StatelessWidget {
                   padding: const EdgeInsets.all(8.0),
                   itemCount: tasks.length,
                   itemBuilder: (context, index) {
-                    return TaskCard(task: tasks[index]);
+                    return TaskCard(
+                      task: tasks[index],
+                      onTap: () => onTaskTap(tasks[index]),
+                      onEdit: () => onTaskEdit(tasks[index]),
+                      onDelete: () => onTaskDelete(tasks[index]),
+                    );
                   },
                 );
               },

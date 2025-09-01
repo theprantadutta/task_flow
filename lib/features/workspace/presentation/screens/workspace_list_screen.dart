@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_flow/features/auth/bloc/auth_bloc.dart';
-import 'package:task_flow/features/workspace/widgets/workspace_grid.dart';
-import 'package:task_flow/features/workspace/widgets/create_workspace_form.dart';
 import 'package:task_flow/features/workspace/presentation/screens/workspace_detail_screen.dart';
-import 'package:task_flow/shared/services/workspace_service.dart';
+import 'package:task_flow/features/workspace/widgets/create_workspace_form.dart';
+import 'package:task_flow/features/workspace/widgets/workspace_grid.dart';
 import 'package:task_flow/shared/models/workspace.dart';
+import 'package:task_flow/shared/services/workspace_service.dart';
 
 class WorkspaceListScreen extends StatefulWidget {
   const WorkspaceListScreen({super.key});
@@ -75,14 +75,14 @@ class _WorkspaceListScreenState extends State<WorkspaceListScreen> {
           name: workspace.name,
           ownerId: user.uid,
         );
-        
+
         if (mounted) {
           setState(() {
             _workspaces.add(newWorkspace);
           });
-          
+
           Navigator.pop(context); // Close the dialog
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Workspace created successfully'),
@@ -106,7 +106,7 @@ class _WorkspaceListScreenState extends State<WorkspaceListScreen> {
   void _showCreateWorkspaceDialog() {
     final user = context.read<AuthBloc>().state.user;
     if (user == null) return;
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -160,13 +160,16 @@ class _WorkspaceListScreenState extends State<WorkspaceListScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => WorkspaceDetailScreen(workspace: workspace),
+                    builder: (context) =>
+                        WorkspaceDetailScreen(workspace: workspace),
                   ),
                 );
               },
               onCreateWorkspace: _showCreateWorkspaceDialog,
             ),
       floatingActionButton: FloatingActionButton(
+        tooltip: 'Create Workspace',
+        heroTag: 'createWorkspaceButton',
         onPressed: _showCreateWorkspaceDialog,
         child: const Icon(Icons.add),
       ),

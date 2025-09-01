@@ -11,6 +11,7 @@ import 'package:task_flow/features/workspace/widgets/create_workspace_form.dart'
 import 'package:task_flow/features/project/widgets/create_project_form.dart';
 import 'package:task_flow/shared/services/workspace_service.dart';
 import 'package:task_flow/shared/services/project_service.dart';
+import 'package:task_flow/shared/widgets/enhanced_bottom_navigation_bar.dart';
 // Page transitions will be used in future implementations
 
 class MainScreen extends StatefulWidget {
@@ -118,12 +119,12 @@ class _MainScreenState extends State<MainScreen> {
         return;
       }
 
-      if (context.mounted) {
-        String? selectedWorkspaceId = workspaces.isNotEmpty ? workspaces.first.id : null;
+      String? selectedWorkspaceId = workspaces.isNotEmpty ? workspaces.first.id : null;
 
+      if (context.mounted) {
         showDialog(
           context: context,
-          builder: (BuildContext context) {
+          builder: (BuildContext dialogContext) {
             return StatefulBuilder(
               builder: (context, setState) {
                 return AlertDialog(
@@ -132,7 +133,7 @@ class _MainScreenState extends State<MainScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       DropdownButtonFormField<String>(
-                        value: selectedWorkspaceId,
+                        initialValue: selectedWorkspaceId,
                         items: workspaces.map((workspace) {
                           return DropdownMenuItem(
                             value: workspace.id,
@@ -164,10 +165,10 @@ class _MainScreenState extends State<MainScreen> {
                               ownerId: user.uid,
                             );
 
-                            if (context.mounted) {
-                              Navigator.pop(context); // Close the dialog
+                            if (dialogContext.mounted) {
+                              Navigator.pop(dialogContext); // Close the dialog
 
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(dialogContext).showSnackBar(
                                 const SnackBar(
                                   content: Text('Project created successfully'),
                                   backgroundColor: Colors.green,
@@ -175,8 +176,8 @@ class _MainScreenState extends State<MainScreen> {
                               );
                             }
                           } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                            if (dialogContext.mounted) {
+                              ScaffoldMessenger.of(dialogContext).showSnackBar(
                                 SnackBar(
                                   content: Text('Failed to create project: $e'),
                                   backgroundColor: Colors.red,
@@ -207,12 +208,14 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _showCreateTaskMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Tasks are created within projects'),
-        backgroundColor: Colors.blue,
-      ),
-    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tasks are created within projects'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    }
   }
 
   Widget _buildFloatingActionButton() {
@@ -242,54 +245,9 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _children[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.3),
-              blurRadius: 10,
-              spreadRadius: 0.5,
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor ??
-              (Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : Colors.white),
-          selectedItemColor: Theme.of(context).primaryColor,
-          unselectedItemColor: Theme.of(context).brightness == Brightness.dark 
-              ? Colors.grey[400] 
-              : Colors.grey[600],
-          currentIndex: _currentIndex,
-          onTap: onTabTapped,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.work_outline),
-              activeIcon: Icon(Icons.work),
-              label: 'Workspaces',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.folder_open),
-              activeIcon: Icon(Icons.folder),
-              label: 'Projects',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.task_outlined),
-              activeIcon: Icon(Icons.task),
-              label: 'Tasks',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
-        ),
+      bottomNavigationBar: EnhancedBottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: onTabTapped,
       ),
       floatingActionButton: _buildFloatingActionButton(),
     );

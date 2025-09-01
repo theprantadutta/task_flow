@@ -3,8 +3,17 @@ import 'package:task_flow/shared/models/task.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const TaskCard({super.key, required this.task});
+  const TaskCard({
+    super.key, 
+    required this.task,
+    required this.onTap,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -118,16 +127,12 @@ class TaskCard extends StatelessWidget {
       childWhenDragging: Opacity(
         opacity: 0.5,
         child: InkWell(
-          onTap: () {
-            // TODO: Navigate to task detail screen
-          },
+          onTap: onTap,
           child: _buildCard(context),
         ),
       ),
       child: InkWell(
-        onTap: () {
-          // TODO: Navigate to task detail screen
-        },
+        onTap: onTap,
         child: _buildCard(context),
       ),
     );
