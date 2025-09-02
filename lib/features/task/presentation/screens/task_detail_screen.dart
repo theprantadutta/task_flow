@@ -31,7 +31,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   Future<void> _updateTask(Task updatedTask) async {
     try {
       final taskService = TaskService();
-      await taskService.updateTask(updatedTask);
+      await taskService.updateTask(updatedTask, widget.workspaceId);
       
       setState(() {
         _task = updatedTask;
@@ -53,7 +53,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update task: $e'),
+            content: Text('Failed to update task: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );

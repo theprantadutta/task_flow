@@ -4,7 +4,6 @@ import 'package:task_flow/features/auth/bloc/auth_bloc.dart';
 import 'package:task_flow/features/dashboard/services/dashboard_service.dart';
 import 'package:task_flow/features/project/widgets/create_project_form.dart';
 import 'package:task_flow/features/workspace/widgets/create_workspace_form.dart';
-import 'package:task_flow/shared/models/workspace.dart';
 import 'package:task_flow/shared/services/project_service.dart';
 import 'package:task_flow/shared/services/workspace_service.dart';
 import 'package:task_flow/shared/widgets/bottom_sheet_wrapper.dart';

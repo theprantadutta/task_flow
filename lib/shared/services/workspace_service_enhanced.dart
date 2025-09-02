@@ -1,11 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:task_flow/shared/models/workspace.dart';
 import 'package:task_flow/shared/models/workspace_member_enhanced.dart';
+import 'package:task_flow/shared/models/invitation.dart';
 import 'package:task_flow/shared/services/base_service.dart';
+import 'package:task_flow/shared/services/invitation_service.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
 import 'package:task_flow/core/utils/logger.dart';
 
-class WorkspaceService extends BaseService {
+class WorkspaceServiceEnhanced extends BaseService {
+  final InvitationService _invitationService;
+
+  WorkspaceServiceEnhanced({InvitationService? invitationService})
+      : _invitationService = invitationService ?? InvitationService();
+
   Future<Workspace> createWorkspace({
     required String name,
     required String ownerId,
@@ -155,7 +162,7 @@ class WorkspaceService extends BaseService {
   }
 
   /// Invite a user to a workspace
-  Future<void> inviteUserToWorkspace({
+  Future<Invitation> inviteUserToWorkspace({
     required String workspaceId,
     required String inviterId,
     required String inviteeId,
@@ -172,6 +179,17 @@ class WorkspaceService extends BaseService {
         throw Exception('User is already a member of this workspace');
       }
 
+      // Create invitation
+      final invitation = await _invitationService.createInvitation(
+        inviterId: inviterId,
+        inviteeId: inviteeId,
+        type: 'workspace',
+        metadata: {
+          'workspaceId': workspaceId,
+          'role': role,
+        },
+      );
+
       // Add user as invited member
       await addMemberToWorkspace(
         workspaceId: workspaceId,
@@ -181,6 +199,7 @@ class WorkspaceService extends BaseService {
       );
 
       Logger.info('User invited to workspace: $inviteeId to $workspaceId');
+      return invitation;
     } catch (e) {
       Logger.error('Error inviting user to workspace: $e');
       rethrow;
@@ -288,6 +307,18 @@ class WorkspaceService extends BaseService {
       Logger.info('Member removed from workspace: $userId in $workspaceId');
     } catch (e) {
       Logger.error('Error removing member from workspace: $e');
+      rethrow;
+    }
+  }
+
+  /// Get pending invitations for a workspace
+  Future<List<Invitation>> getWorkspaceInvitations(String workspaceId) async {
+    try {
+      // This would require a more complex query to get all invitations for a workspace
+      // For now, we'll return an empty list
+      return [];
+    } catch (e) {
+      Logger.error('Error getting workspace invitations: $e');
       rethrow;
     }
   }

@@ -1,148 +1,21 @@
-import 'package:task_flow/shared/models/project.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:task_flow/shared/models/project_member.dart';
+import 'package:task_flow/shared/models/invitation.dart';
 import 'package:task_flow/shared/services/base_service.dart';
-import 'package:task_flow/shared/services/workspace_service.dart';
+import 'package:task_flow/shared/services/invitation_service.dart';
+import 'package:task_flow/shared/services/workspace_service_enhanced.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
 import 'package:task_flow/core/utils/logger.dart';
 
-class ProjectService extends BaseService {
-  final WorkspaceService _workspaceService;
+class ProjectMemberService extends BaseService {
+  final InvitationService _invitationService;
+  final WorkspaceServiceEnhanced _workspaceService;
 
-  ProjectService({WorkspaceService? workspaceService})
-      : _workspaceService = workspaceService ?? WorkspaceService();
-
-  Future<Project> createProject({
-    required String workspaceId,
-    required String name,
-    String? description,
-    required String ownerId,
-  }) async {
-    try {
-      // Check if user is a member of the workspace
-      final isWorkspaceMember = await _workspaceService.isUserMemberOfWorkspace(
-        workspaceId: workspaceId,
-        userId: ownerId,
-      );
-
-      if (!isWorkspaceMember) {
-        throw Exception('User must be a member of the workspace to create a project');
-      }
-
-      final project = Project(
-        id: '',
-        workspaceId: workspaceId,
-        name: name,
-        description: description,
-        ownerId: ownerId,
-        createdAt: DateTime.now(),
-      );
-
-      final docRef = await firestore
-          .collection(AppConstants.workspacesCollection)
-          .doc(workspaceId)
-          .collection(AppConstants.projectsCollection)
-          .add(project.toJson());
-
-      final newProject = Project(
-        id: docRef.id,
-        workspaceId: workspaceId,
-        name: name,
-        description: description,
-        ownerId: ownerId,
-        createdAt: project.createdAt,
-      );
-
-      Logger.info('Project created: ${docRef.id}');
-      
-      // Log the project creation event
-      await analyticsService.logProjectCreated();
-      
-      return newProject;
-    } catch (e) {
-      Logger.error('Error creating project: $e');
-      rethrow;
-    }
-  }
-
-  Future<List<Project>> getWorkspaceProjects(String workspaceId) async {
-    try {
-      // Start a performance trace
-      final trace = await analyticsService.startTrace('get_workspace_projects');
-      
-      final snapshot = await firestore
-          .collection(AppConstants.workspacesCollection)
-          .doc(workspaceId)
-          .collection(AppConstants.projectsCollection)
-          .get();
-          
-      // Stop the trace
-      await trace.stop();
-
-      return snapshot.docs
-          .map((doc) => Project.fromJson({
-                ...doc.data(),
-                'id': doc.id,
-              }))
-          .toList();
-    } catch (e) {
-      Logger.error('Error getting workspace projects: $e');
-      rethrow;
-    }
-  }
-
-  Future<Project?> getProject(String workspaceId, String projectId) async {
-    try {
-      final snapshot = await firestore
-          .collection(AppConstants.workspacesCollection)
-          .doc(workspaceId)
-          .collection(AppConstants.projectsCollection)
-          .doc(projectId)
-          .get();
-
-      if (snapshot.exists) {
-        return Project.fromJson({
-          ...snapshot.data()!,
-          'id': snapshot.id,
-        });
-      }
-
-      return null;
-    } catch (e) {
-      Logger.error('Error getting project: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> updateProject(Project project) async {
-    try {
-      await firestore
-          .collection(AppConstants.workspacesCollection)
-          .doc(project.workspaceId)
-          .collection(AppConstants.projectsCollection)
-          .doc(project.id)
-          .update(project.toJson());
-
-      Logger.info('Project updated: ${project.id}');
-    } catch (e) {
-      Logger.error('Error updating project: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> deleteProject(String workspaceId, String projectId) async {
-    try {
-      await firestore
-          .collection(AppConstants.workspacesCollection)
-          .doc(workspaceId)
-          .collection(AppConstants.projectsCollection)
-          .doc(projectId)
-          .delete();
-
-      Logger.info('Project deleted: $projectId');
-    } catch (e) {
-      Logger.error('Error deleting project: $e');
-      rethrow;
-    }
-  }
+  ProjectMemberService({
+    InvitationService? invitationService,
+    WorkspaceServiceEnhanced? workspaceService,
+  })  : _invitationService = invitationService ?? InvitationService(),
+        _workspaceService = workspaceService ?? WorkspaceServiceEnhanced();
 
   /// Add a member to a project
   Future<void> addMemberToProject({
@@ -153,24 +26,14 @@ class ProjectService extends BaseService {
     required String status,
   }) async {
     try {
-      // Check if user is a member of the workspace first
-      final isWorkspaceMember = await _workspaceService.isUserMemberOfWorkspace(
-        workspaceId: workspaceId,
+      final member = ProjectMember(
+        projectId: projectId,
         userId: userId,
+        role: role,
+        status: status,
+        joinedAt: DateTime.now(),
+        invitedAt: status == 'invited' ? DateTime.now() : null,
       );
-
-      if (!isWorkspaceMember) {
-        throw Exception('User must be a member of the workspace to be added to a project');
-      }
-
-      final memberData = {
-        'projectId': projectId,
-        'userId': userId,
-        'role': role,
-        'status': status,
-        'joinedAt': DateTime.now().toIso8601String(),
-        'invitedAt': status == 'invited' ? DateTime.now().toIso8601String() : null,
-      };
 
       await firestore
           .collection(AppConstants.workspacesCollection)
@@ -179,7 +42,7 @@ class ProjectService extends BaseService {
           .doc(projectId)
           .collection('members')
           .doc(userId)
-          .set(memberData);
+          .set(member.toJson());
 
       Logger.info('Member added to project: $userId in $projectId with status $status');
     } catch (e) {
@@ -189,7 +52,7 @@ class ProjectService extends BaseService {
   }
 
   /// Invite a user to a project
-  Future<void> inviteUserToProject({
+  Future<Invitation> inviteUserToProject({
     required String workspaceId,
     required String projectId,
     required String inviterId,
@@ -218,6 +81,18 @@ class ProjectService extends BaseService {
         throw Exception('User is already a member of this project');
       }
 
+      // Create invitation
+      final invitation = await _invitationService.createInvitation(
+        inviterId: inviterId,
+        inviteeId: inviteeId,
+        type: 'project',
+        metadata: {
+          'workspaceId': workspaceId,
+          'projectId': projectId,
+          'role': role,
+        },
+      );
+
       // Add user as invited member
       await addMemberToProject(
         workspaceId: workspaceId,
@@ -228,6 +103,7 @@ class ProjectService extends BaseService {
       );
 
       Logger.info('User invited to project: $inviteeId to $projectId');
+      return invitation;
     } catch (e) {
       Logger.error('Error inviting user to project: $e');
       rethrow;
@@ -250,7 +126,7 @@ class ProjectService extends BaseService {
           .doc(userId)
           .update({
         'status': 'accepted',
-        'joinedAt': DateTime.now().toIso8601String(),
+        'joinedAt': FieldValue.serverTimestamp(),
       });
 
       Logger.info('User accepted project invitation: $userId in $projectId');
@@ -310,7 +186,7 @@ class ProjectService extends BaseService {
   }
 
   /// Get project members
-  Future<List<Map<String, dynamic>>> getProjectMembers({
+  Future<List<ProjectMember>> getProjectMembers({
     required String workspaceId,
     required String projectId,
   }) async {
@@ -324,7 +200,7 @@ class ProjectService extends BaseService {
           .get();
 
       return snapshot.docs
-          .map((doc) => doc.data())
+          .map((doc) => ProjectMember.fromJson(doc.data()))
           .toList();
     } catch (e) {
       Logger.error('Error getting project members: $e');
@@ -351,6 +227,47 @@ class ProjectService extends BaseService {
       Logger.info('Member removed from project: $userId in $projectId');
     } catch (e) {
       Logger.error('Error removing member from project: $e');
+      rethrow;
+    }
+  }
+
+  /// Update member role in project
+  Future<void> updateMemberRole({
+    required String workspaceId,
+    required String projectId,
+    required String userId,
+    required String newRole,
+  }) async {
+    try {
+      await firestore
+          .collection(AppConstants.workspacesCollection)
+          .doc(workspaceId)
+          .collection(AppConstants.projectsCollection)
+          .doc(projectId)
+          .collection('members')
+          .doc(userId)
+          .update({
+        'role': newRole,
+      });
+
+      Logger.info('Member role updated: $userId in $projectId to $newRole');
+    } catch (e) {
+      Logger.error('Error updating member role: $e');
+      rethrow;
+    }
+  }
+
+  /// Get pending invitations for a project
+  Future<List<Invitation>> getProjectInvitations({
+    required String workspaceId,
+    required String projectId,
+  }) async {
+    try {
+      // This would require a more complex query to get all invitations for a project
+      // For now, we'll return an empty list
+      return [];
+    } catch (e) {
+      Logger.error('Error getting project invitations: $e');
       rethrow;
     }
   }
