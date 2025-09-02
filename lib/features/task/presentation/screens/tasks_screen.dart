@@ -157,7 +157,7 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
       final workspaces = await _workspaceService.getUserWorkspaces(user.uid);
 
       if (workspaces.isEmpty) {
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Please create a workspace first'),
@@ -184,7 +184,7 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
       );
 
       if (projects.isEmpty) {
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Please create a project first'),
@@ -205,7 +205,7 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
 
       if (selectedProject == null) return;
 
-      if (context.mounted) {
+      if (mounted) {
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
@@ -275,7 +275,7 @@ class _TasksScreenState extends State<TasksScreen> with WidgetsBindingObserver {
         );
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load workspaces/projects: $e'),

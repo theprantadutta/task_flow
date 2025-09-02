@@ -105,7 +105,7 @@ class UserServiceEnhanced extends BaseService {
       
       return userMap.values.toList();
     } catch (e) {
-      Logger.error('Error searching users: ${e.toString()}');
+      Logger.error('Error searching users: $e');
       rethrow;
     }
   }
@@ -131,7 +131,7 @@ class UserServiceEnhanced extends BaseService {
       
       return users;
     } catch (e) {
-      Logger.error('Error getting users: ${e.toString()}');
+      Logger.error('Error getting users: $e');
       rethrow;
     }
   }
@@ -195,7 +195,7 @@ class UserServiceEnhanced extends BaseService {
         'workspaces': workspaceCount,
       };
     } catch (e) {
-      Logger.error('Error getting user stats: ${e.toString()}');
+      Logger.error('Error getting user stats: $e');
       rethrow;
     }
   }

@@ -111,7 +111,7 @@ class _MainScreenState extends State<MainScreen> {
       final workspaces = await workspaceService.getUserWorkspaces(user.uid);
 
       if (workspaces.isEmpty) {
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Please create a workspace first'),
@@ -124,7 +124,7 @@ class _MainScreenState extends State<MainScreen> {
 
       String? selectedWorkspaceId = workspaces.isNotEmpty ? workspaces.first.id : null;
 
-      if (context.mounted) {
+      if (mounted) {
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
@@ -203,7 +203,7 @@ class _MainScreenState extends State<MainScreen> {
         );
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load workspaces: $e'),
@@ -215,7 +215,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _showCreateTaskMessage() {
-    if (context.mounted) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Tasks are created within projects'),

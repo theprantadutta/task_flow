@@ -53,7 +53,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update task: ${e.toString()}'),
+            content: Text('Failed to update task: $e'),
             backgroundColor: Colors.red,
           ),
         );
